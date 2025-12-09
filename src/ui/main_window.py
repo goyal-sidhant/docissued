@@ -1,7 +1,7 @@
 """
-Main Window for GSTR-1 Table 13 Generator.
+Main Window - Sahaj Table 13 Generator
 
-The primary application window containing input and output panels.
+Clean, professional layout for GST practitioners.
 """
 
 from PyQt5.QtWidgets import (
@@ -10,22 +10,20 @@ from PyQt5.QtWidgets import (
     QLabel, QApplication
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QFont
 
 from .input_panel import InputPanel
 from .output_panel import OutputPanel
-from .styles import MAIN_STYLESHEET, COLORS
 
 from ..core.pattern_parser import PatternParser
 from ..core.invoice_processor import InvoiceProcessor
 from ..core.series_analyzer import SeriesAnalyzer
-from ..core.models import ProcessingResult
 
 
 class MainWindow(QMainWindow):
     """Main application window."""
     
-    APP_NAME = "GSTR-1 Table 13 Generator"
+    APP_NAME = "Sahaj - Table 13 Generator"
     APP_VERSION = "1.0.0"
     
     def __init__(self):
@@ -36,10 +34,10 @@ class MainWindow(QMainWindow):
     
     def _setup_window(self):
         """Configure window properties."""
-        self.setWindowTitle(f"{self.APP_NAME} v{self.APP_VERSION}")
-        self.setMinimumSize(1200, 800)
+        self.setWindowTitle(self.APP_NAME)
+        self.setMinimumSize(1100, 700)
         
-        # Try to set a reasonable default size
+        # Set reasonable default size
         screen = QApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()
@@ -52,12 +50,19 @@ class MainWindow(QMainWindow):
             y = (geometry.height() - height) // 2
             self.move(x, y)
         
-        # Apply stylesheet
-        self.setStyleSheet(MAIN_STYLESHEET)
+        # Clean background
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f1f5f9;
+            }
+            QSplitter::handle {
+                background-color: #e2e8f0;
+                width: 1px;
+            }
+        """)
     
     def _setup_ui(self):
         """Set up the main UI layout."""
-        # Central widget
         central = QWidget()
         self.setCentralWidget(central)
         
@@ -68,88 +73,100 @@ class MainWindow(QMainWindow):
         # Header
         main_layout.addWidget(self._create_header())
         
-        # Content area with splitter
+        # Content area
         content = QWidget()
+        content.setStyleSheet("background-color: #f1f5f9;")
         content_layout = QHBoxLayout(content)
-        content_layout.setContentsMargins(16, 16, 16, 16)
-        
-        splitter = QSplitter(Qt.Horizontal)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(20)
         
         # Input panel (left)
         input_container = QFrame()
-        input_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['bg_primary']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 8px;
-            }}
+        input_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+            }
         """)
+        input_container.setMinimumWidth(450)
+        input_container.setMaximumWidth(550)
+        
         input_layout = QVBoxLayout(input_container)
         input_layout.setContentsMargins(0, 0, 0, 0)
         
         self.input_panel = InputPanel()
         input_layout.addWidget(self.input_panel)
         
-        splitter.addWidget(input_container)
+        content_layout.addWidget(input_container)
         
         # Output panel (right)
         output_container = QFrame()
-        output_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['bg_primary']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 8px;
-            }}
+        output_container.setStyleSheet("""
+            QFrame {
+                background-color: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+            }
         """)
+        
         output_layout = QVBoxLayout(output_container)
         output_layout.setContentsMargins(0, 0, 0, 0)
         
         self.output_panel = OutputPanel()
         output_layout.addWidget(self.output_panel)
         
-        splitter.addWidget(output_container)
+        content_layout.addWidget(output_container, 1)
         
-        # Set splitter proportions (40% input, 60% output)
-        splitter.setSizes([400, 600])
-        splitter.setCollapsible(0, False)
-        splitter.setCollapsible(1, False)
-        
-        content_layout.addWidget(splitter)
-        main_layout.addWidget(content)
+        main_layout.addWidget(content, 1)
         
         # Status bar
         self.status_bar = QStatusBar()
+        self.status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: white;
+                border-top: 1px solid #e2e8f0;
+                padding: 8px 15px;
+                font-size: 12px;
+                color: #64748b;
+            }
+        """)
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready")
+        self.status_bar.showMessage("Ready - Enter invoice details to generate Table 13")
     
     def _create_header(self) -> QWidget:
         """Create the application header."""
         header = QFrame()
-        header.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['primary']};
-                padding: 16px;
-            }}
+        header.setStyleSheet("""
+            QFrame {
+                background-color: #0f172a;
+                border: none;
+            }
         """)
+        header.setFixedHeight(70)
         
         layout = QHBoxLayout(header)
-        layout.setContentsMargins(24, 16, 24, 16)
+        layout.setContentsMargins(25, 0, 25, 0)
         
-        # Title
-        title = QLabel(self.APP_NAME)
-        title_font = QFont()
-        title_font.setPointSize(18)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        title.setStyleSheet(f"color: {COLORS['text_on_primary']};")
-        layout.addWidget(title)
+        # Logo / Title
+        title_layout = QVBoxLayout()
+        title_layout.setSpacing(2)
         
+        title = QLabel("📋 Sahaj")
+        title.setStyleSheet("font-size: 22px; font-weight: bold; color: white;")
+        title_layout.addWidget(title)
+        
+        subtitle = QLabel("GSTR-1 Table 13 Generator")
+        subtitle.setStyleSheet("font-size: 12px; color: #94a3b8;")
+        title_layout.addWidget(subtitle)
+        
+        layout.addLayout(title_layout)
         layout.addStretch()
         
-        # Subtitle
-        subtitle = QLabel("Generate Table 13 summary from invoice lists")
-        subtitle.setStyleSheet(f"color: rgba(255, 255, 255, 0.8);")
-        layout.addWidget(subtitle)
+        # Help text
+        help_text = QLabel("Generate document summary for GST returns in seconds")
+        help_text.setStyleSheet("font-size: 13px; color: #94a3b8;")
+        layout.addWidget(help_text)
         
         return header
     
@@ -159,18 +176,16 @@ class MainWindow(QMainWindow):
         self.input_panel.clear_requested.connect(self._on_clear)
     
     def _on_process(self):
-        """Handle process request from input panel."""
-        # Get inputs
+        """Handle process request."""
         pattern_text = self.input_panel.get_pattern()
         invoice_text = self.input_panel.get_invoice_text()
         document_nature = self.input_panel.get_document_nature()
         ignore_zeros = self.input_panel.get_ignore_leading_zeros()
         
-        # Set processing state
         self.input_panel.set_processing_state(True)
-        self.status_bar.showMessage("Processing...")
+        self.status_bar.showMessage("Processing invoices...")
         
-        # Use QTimer to allow UI to update before processing
+        # Process after UI updates
         QTimer.singleShot(50, lambda: self._do_process(
             pattern_text, invoice_text, document_nature, ignore_zeros
         ))
@@ -184,7 +199,7 @@ class MainWindow(QMainWindow):
             pattern = parser.parse(pattern_text)
             
             if not pattern.is_valid:
-                raise ValueError(f"Invalid pattern: {pattern.error_message}")
+                raise ValueError(f"Invalid format: {pattern.error_message}")
             
             # Process invoices
             processor = InvoiceProcessor(pattern, ignore_zeros)
@@ -203,17 +218,21 @@ class MainWindow(QMainWindow):
             self.output_panel.display_result(result, rows)
             
             # Update status
+            total_cancelled = sum(s.cancelled_count for s in result.series_results)
             self.status_bar.showMessage(
-                f"Processed {result.total_input_lines} invoices successfully"
+                f"✅ Done! {result.total_matched:,} invoices processed | "
+                f"{len(result.series_results)} series | "
+                f"{total_cancelled} cancelled"
             )
             
         except Exception as e:
             QMessageBox.critical(
                 self,
-                "Processing Error",
-                f"An error occurred while processing:\n\n{str(e)}"
+                "Error",
+                f"Could not process invoices:\n\n{str(e)}\n\n"
+                "Please check your invoice format and try again."
             )
-            self.status_bar.showMessage("Processing failed")
+            self.status_bar.showMessage("❌ Processing failed - check your inputs")
         
         finally:
             self.input_panel.set_processing_state(False)
@@ -221,9 +240,4 @@ class MainWindow(QMainWindow):
     def _on_clear(self):
         """Handle clear request."""
         self.output_panel.clear_results()
-        self.status_bar.showMessage("Cleared")
-    
-    def closeEvent(self, event):
-        """Handle window close event."""
-        # Could add confirmation dialog here if needed
-        event.accept()
+        self.status_bar.showMessage("Cleared - Ready for new data")
