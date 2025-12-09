@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 GSTR-1 Table 13 Generator
 
