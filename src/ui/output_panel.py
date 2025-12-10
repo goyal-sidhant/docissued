@@ -6,10 +6,10 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QTableWidget, QTableWidgetItem,
     QFrame, QTextEdit, QHeaderView, QScrollArea,
-    QApplication, QMessageBox, QSizePolicy
+    QApplication, QMessageBox, QSizePolicy, QMenu
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtGui import QColor, QKeySequence
 
 from typing import List, Optional
 from ..core.models import ProcessingResult, Table13Row
@@ -117,7 +117,7 @@ class OutputPanel(QWidget):
         table_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #374151;")
         table_header.addWidget(table_title)
         
-        resize_hint = QLabel("(drag column edges to resize)")
+        resize_hint = QLabel("(drag columns to resize • Ctrl+C to copy selection)")
         resize_hint.setStyleSheet("font-size: 10px; color: #9ca3af;")
         table_header.addWidget(resize_hint)
         
@@ -208,9 +208,18 @@ class OutputPanel(QWidget):
         self.results_table.setColumnWidth(4, 70)
         self.results_table.setColumnWidth(5, 45)
         
-        self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
+        # Allow selecting individual cells, rows, or ranges
+        self.results_table.setSelectionBehavior(QTableWidget.SelectItems)
+        self.results_table.setSelectionMode(QTableWidget.ExtendedSelection)
         self.results_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.results_table.verticalHeader().setVisible(False)
+        
+        # Enable Ctrl+C for copying selected cells
+        self.results_table.installEventFilter(self)
+        
+        # Right-click context menu
+        self.results_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.results_table.customContextMenuRequested.connect(self._show_table_context_menu)
         
         # Default: compact mode with max height
         self.results_table.setMinimumHeight(80)
@@ -355,6 +364,56 @@ class OutputPanel(QWidget):
             self.results_table.setMaximumHeight(200)
             self.results_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
             self.expand_btn.setText("▼ Show All Rows")
+    
+    def eventFilter(self, obj, event):
+        """Handle Ctrl+C for copying selected cells."""
+        if obj == self.results_table and event.type() == QEvent.KeyPress:
+            if event.matches(QKeySequence.Copy):
+                self._copy_selected()
+                return True
+        return super().eventFilter(obj, event)
+    
+    def _copy_selected(self):
+        """Copy selected cells to clipboard (Tab-separated for Excel)."""
+        selection = self.results_table.selectedRanges()
+        if not selection:
+            return
+        
+        # Get bounds of selection
+        rows = set()
+        cols = set()
+        for sel_range in selection:
+            for r in range(sel_range.topRow(), sel_range.bottomRow() + 1):
+                rows.add(r)
+            for c in range(sel_range.leftColumn(), sel_range.rightColumn() + 1):
+                cols.add(c)
+        
+        rows = sorted(rows)
+        cols = sorted(cols)
+        
+        # Build TSV from selected cells
+        lines = []
+        for r in rows:
+            row_data = []
+            for c in cols:
+                item = self.results_table.item(r, c)
+                row_data.append(item.text() if item else "")
+            lines.append("\t".join(row_data))
+        
+        text = "\n".join(lines)
+        QApplication.clipboard().setText(text)
+    
+    def _show_table_context_menu(self, pos):
+        """Show right-click context menu for table."""
+        menu = QMenu(self)
+        
+        copy_selected = menu.addAction("Copy Selected (Ctrl+C)")
+        copy_selected.triggered.connect(self._copy_selected)
+        
+        copy_all = menu.addAction("Copy All Rows")
+        copy_all.triggered.connect(self._copy_table)
+        
+        menu.exec_(self.results_table.mapToGlobal(pos))
     
     def _make_stat(self, value: str, label: str, color: str = "#1f2937") -> QWidget:
         widget = QWidget()
