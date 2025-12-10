@@ -336,17 +336,24 @@ class OutputPanel(QWidget):
         self._table_expanded = not self._table_expanded
         
         if self._table_expanded:
-            # Expanded: show all rows, no max height
-            row_count = self.results_table.rowCount()
-            # Calculate height: header (35px) + rows (35px each) + border (2px)
-            needed_height = 37 + (row_count * 35) + 2
-            self.results_table.setMaximumHeight(needed_height)
+            # Calculate ACTUAL needed height from table
+            header_height = self.results_table.horizontalHeader().height()
+            rows_height = 0
+            for i in range(self.results_table.rowCount()):
+                rows_height += self.results_table.rowHeight(i)
+            
+            # Add buffer for borders, padding, and horizontal scrollbar if needed
+            needed_height = header_height + rows_height + 10
+            
             self.results_table.setMinimumHeight(needed_height)
+            self.results_table.setMaximumHeight(16777215)  # Remove max constraint
+            self.results_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             self.expand_btn.setText("▲ Collapse")
         else:
             # Compact: limited height with scrolling
             self.results_table.setMinimumHeight(80)
             self.results_table.setMaximumHeight(200)
+            self.results_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
             self.expand_btn.setText("▼ Show All Rows")
     
     def _make_stat(self, value: str, label: str, color: str = "#1f2937") -> QWidget:
@@ -388,6 +395,7 @@ class OutputPanel(QWidget):
         # Reset table to compact mode
         self.results_table.setMinimumHeight(80)
         self.results_table.setMaximumHeight(200)
+        self.results_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.expand_btn.setText("▼ Show All Rows")
         
         # Update stats
@@ -506,4 +514,5 @@ class OutputPanel(QWidget):
         self.results_table.setRowCount(0)
         self.results_table.setMinimumHeight(80)
         self.results_table.setMaximumHeight(200)
+        self.results_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.expand_btn.setText("▼ Show All Rows")
