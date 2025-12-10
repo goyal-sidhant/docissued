@@ -64,8 +64,19 @@ class SeriesAnalyzer:
         # Get wildcard values from first invoice (all should be same for this series)
         wildcard_values = invoices[0].wildcard_values if invoices else []
         
-        # Extract all sequence numbers
-        all_sequences = [inv.sequence_number for inv in invoices if inv.sequence_number is not None]
+        # Extract all sequence numbers and detect ACTUAL padding from data
+        all_sequences = []
+        actual_padding = self.pattern.sequence_length
+        
+        for inv in invoices:
+            if inv.sequence_number is not None:
+                all_sequences.append(inv.sequence_number)
+                # Detect actual padding from the original sequence string
+                if inv.sequence_str:
+                    actual_padding = max(actual_padding, len(inv.sequence_str))
+        
+        # Use detected padding
+        result.sequence_padding = actual_padding
         
         if not all_sequences:
             result.warnings.append("No valid sequence numbers found")
@@ -94,7 +105,7 @@ class SeriesAnalyzer:
         result.end_number = sorted_sequences[-1]
         result.actual_count = len(unique_sequences)
         
-        # Reconstruct start and end invoice numbers
+        # Reconstruct start and end invoice numbers with ACTUAL padding
         result.start_invoice = self.processor.reconstruct_invoice(
             result.start_number, 
             wildcard_values,
@@ -117,9 +128,9 @@ class SeriesAnalyzer:
         result.cancelled_count = len(missing_numbers)
         result.net_issued = result.actual_count
         
-        # Reconstruct missing invoice numbers
+        # Store missing as JUST the sequence numbers (padded), not full invoice
         result.missing_invoices = [
-            self.processor.reconstruct_invoice(num, wildcard_values, result.sequence_padding)
+            str(num).zfill(result.sequence_padding)
             for num in missing_numbers
         ]
         

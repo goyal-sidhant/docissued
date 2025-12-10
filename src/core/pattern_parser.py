@@ -168,10 +168,9 @@ class PatternParser:
                 regex_parts.append(re.escape(value))
             
             elif part_type == 'wildcard':
-                # Wildcard matches one or more non-separator characters
-                # Using .+? (non-greedy) to match minimally
-                # But we need to be smarter - match until next fixed part
-                regex_parts.append(f'(?P<wc{wildcard_index}>.+?)')
+                # Wildcard matches zero or more characters (non-greedy)
+                # Using .*? to allow empty matches (e.g., when wildcard is optional)
+                regex_parts.append(f'(?P<wc{wildcard_index}>.*?)')
                 wildcard_index += 1
             
             elif part_type == 'sequence':

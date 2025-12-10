@@ -102,7 +102,8 @@ class TestSeriesAnalyzer:
         
         result = analyzer.analyze_series("GST/{SEQ}", invoices)
         
-        assert "GST/002" in result.missing_invoices
+        # missing_invoices now contains just the padded sequence numbers
+        assert "002" in result.missing_invoices
     
     def test_high_cancellation_warning(self):
         """Test that high cancellation ratio generates warning."""

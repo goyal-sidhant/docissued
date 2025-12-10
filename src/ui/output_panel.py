@@ -226,7 +226,8 @@ class OutputPanel(QWidget):
         
         self.missing_text = QTextEdit()
         self.missing_text.setReadOnly(True)
-        self.missing_text.setMaximumHeight(80)
+        self.missing_text.setMinimumHeight(60)
+        self.missing_text.setMaximumHeight(120)
         self.missing_text.setStyleSheet("""
             QTextEdit {
                 font-size: 11px;
@@ -341,13 +342,15 @@ class OutputPanel(QWidget):
         missing_parts = []
         for series in result.series_results:
             if series.missing_invoices:
-                inv_list = ", ".join(series.missing_invoices[:15])
-                if len(series.missing_invoices) > 15:
-                    inv_list += f" ...+{len(series.missing_invoices) - 15} more"
-                missing_parts.append(inv_list)
+                # Show series name with placeholder for sequence
+                series_name = series.series_display_name.replace('<seq>', '___')
+                inv_list = ", ".join(series.missing_invoices[:20])
+                if len(series.missing_invoices) > 20:
+                    inv_list += f" ...+{len(series.missing_invoices) - 20} more"
+                missing_parts.append(f"Series: {series_name}\nMissing: {inv_list}")
         
         if missing_parts:
-            self.missing_text.setText("\n".join(missing_parts))
+            self.missing_text.setText("\n\n".join(missing_parts))
             self.missing_widget.show()
         else:
             self.missing_widget.hide()
@@ -403,12 +406,17 @@ class OutputPanel(QWidget):
     def _copy_missing(self):
         if not self._current_result:
             return
-        missing = []
+        lines = []
         for series in self._current_result.series_results:
-            missing.extend(series.missing_invoices)
-        if missing:
-            QApplication.clipboard().setText("\n".join(missing))
-            QMessageBox.information(self, "Copied", f"{len(missing)} invoice numbers copied")
+            if series.missing_invoices:
+                series_name = series.series_display_name.replace('<seq>', '___')
+                lines.append(f"Series: {series_name}")
+                lines.append(f"Missing: {', '.join(series.missing_invoices)}")
+                lines.append("")
+        if lines:
+            QApplication.clipboard().setText("\n".join(lines).strip())
+            total = sum(len(s.missing_invoices) for s in self._current_result.series_results)
+            QMessageBox.information(self, "Copied", f"{total} missing invoice numbers copied")
     
     def clear_results(self):
         self._current_result = None

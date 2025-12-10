@@ -133,16 +133,21 @@ class MainWindow(QMainWindow):
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.setStyleSheet("""
             QSplitter::handle {
-                background: #cbd5e1;
-                width: 6px;
-                margin: 0 8px;
-                border-radius: 3px;
+                background: #94a3b8;
+                width: 5px;
+                margin: 0 6px;
+                border-radius: 2px;
             }
             QSplitter::handle:hover {
-                background: #94a3b8;
+                background: #3b82f6;
+            }
+            QSplitter::handle:pressed {
+                background: #1d4ed8;
             }
         """)
-        self.splitter.setHandleWidth(6)
+        self.splitter.setHandleWidth(5)
+        # Set resize cursor for the splitter handle
+        self.splitter.setChildrenCollapsible(False)
         
         # Input panel (left)
         input_frame = QFrame()
@@ -186,9 +191,10 @@ class MainWindow(QMainWindow):
         self.splitter.setStretchFactor(0, 2)
         self.splitter.setStretchFactor(1, 3)
         
-        # Allow collapsing but with minimum sizes
-        self.splitter.setCollapsible(0, False)
-        self.splitter.setCollapsible(1, False)
+        # Set resize cursor on the splitter handle
+        handle = self.splitter.handle(1)
+        if handle:
+            handle.setCursor(Qt.SplitHCursor)
         
         content_layout.addWidget(self.splitter)
         main_layout.addWidget(content, 1)
