@@ -1,10 +1,11 @@
 """
-Main Window - Sahaj Table 13 Generator
+Main Window - Responsive with Resizable Panels
 """
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QStatusBar, QMessageBox, QFrame, QLabel, QApplication
+    QStatusBar, QMessageBox, QFrame, QLabel, QApplication,
+    QSplitter, QScrollArea, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
@@ -17,8 +18,49 @@ from ..core.invoice_processor import InvoiceProcessor
 from ..core.series_analyzer import SeriesAnalyzer
 
 
+# Visible scrollbar style - not camouflaged
+SCROLLBAR_STYLE = """
+    QScrollBar:vertical {
+        background: #e5e7eb;
+        width: 14px;
+        margin: 0;
+        border-radius: 7px;
+    }
+    QScrollBar::handle:vertical {
+        background: #9ca3af;
+        min-height: 30px;
+        border-radius: 7px;
+        margin: 2px;
+    }
+    QScrollBar::handle:vertical:hover {
+        background: #6b7280;
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0;
+    }
+    QScrollBar:horizontal {
+        background: #e5e7eb;
+        height: 14px;
+        margin: 0;
+        border-radius: 7px;
+    }
+    QScrollBar::handle:horizontal {
+        background: #9ca3af;
+        min-width: 30px;
+        border-radius: 7px;
+        margin: 2px;
+    }
+    QScrollBar::handle:horizontal:hover {
+        background: #6b7280;
+    }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+        width: 0;
+    }
+"""
+
+
 class MainWindow(QMainWindow):
-    """Main application window."""
+    """Main application window with resizable panels."""
     
     def __init__(self):
         super().__init__()
@@ -28,17 +70,25 @@ class MainWindow(QMainWindow):
     
     def _setup_window(self):
         self.setWindowTitle("Sahaj — Table 13 Generator")
-        self.setMinimumSize(1000, 650)
         
+        # Minimum size for very small screens
+        self.setMinimumSize(800, 500)
+        
+        # Default size based on screen
         screen = QApplication.primaryScreen()
         if screen:
             geo = screen.availableGeometry()
-            w = min(1300, int(geo.width() * 0.8))
-            h = min(850, int(geo.height() * 0.8))
+            # Use 85% of screen but cap at reasonable max
+            w = min(1400, max(900, int(geo.width() * 0.85)))
+            h = min(900, max(600, int(geo.height() * 0.85)))
             self.resize(w, h)
+            # Center on screen
             self.move((geo.width() - w) // 2, (geo.height() - h) // 2)
         
-        self.setStyleSheet("QMainWindow { background: #f1f5f9; }")
+        self.setStyleSheet(f"""
+            QMainWindow {{ background: #f1f5f9; }}
+            {SCROLLBAR_STYLE}
+        """)
     
     def _setup_ui(self):
         central = QWidget()
@@ -50,41 +100,60 @@ class MainWindow(QMainWindow):
         
         # Header
         header = QFrame()
-        header.setFixedHeight(56)
+        header.setFixedHeight(50)
         header.setStyleSheet("background: #1e293b;")
         
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(24, 0, 24, 0)
+        header_layout.setContentsMargins(20, 0, 20, 0)
         
         title = QLabel("Sahaj")
-        title.setStyleSheet("font-size: 20px; font-weight: 700; color: white;")
+        title.setStyleSheet("font-size: 18px; font-weight: 700; color: white;")
         header_layout.addWidget(title)
         
-        subtitle = QLabel("Table 13 Generator")
-        subtitle.setStyleSheet("font-size: 13px; color: #94a3b8; margin-left: 12px;")
+        subtitle = QLabel("— Table 13 Generator")
+        subtitle.setStyleSheet("font-size: 12px; color: #94a3b8; margin-left: 8px;")
         header_layout.addWidget(subtitle)
         
         header_layout.addStretch()
         
+        help_text = QLabel("Drag the divider to resize panels")
+        help_text.setStyleSheet("font-size: 11px; color: #64748b;")
+        header_layout.addWidget(help_text)
+        
         main_layout.addWidget(header)
         
-        # Content
+        # Content with splitter
         content = QWidget()
         content.setStyleSheet("background: #f1f5f9;")
         content_layout = QHBoxLayout(content)
-        content_layout.setContentsMargins(24, 24, 24, 24)
-        content_layout.setSpacing(24)
+        content_layout.setContentsMargins(16, 16, 16, 16)
+        content_layout.setSpacing(0)
         
-        # Input (left)
+        # Splitter for resizable panels
+        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter.setStyleSheet("""
+            QSplitter::handle {
+                background: #cbd5e1;
+                width: 6px;
+                margin: 0 8px;
+                border-radius: 3px;
+            }
+            QSplitter::handle:hover {
+                background: #94a3b8;
+            }
+        """)
+        self.splitter.setHandleWidth(6)
+        
+        # Input panel (left)
         input_frame = QFrame()
         input_frame.setStyleSheet("""
             QFrame {
                 background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 10px;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
             }
         """)
-        input_frame.setFixedWidth(420)
+        input_frame.setMinimumWidth(320)  # Minimum, not fixed
         
         input_layout = QVBoxLayout(input_frame)
         input_layout.setContentsMargins(0, 0, 0, 0)
@@ -92,17 +161,18 @@ class MainWindow(QMainWindow):
         self.input_panel = InputPanel()
         input_layout.addWidget(self.input_panel)
         
-        content_layout.addWidget(input_frame)
+        self.splitter.addWidget(input_frame)
         
-        # Output (right)
+        # Output panel (right)
         output_frame = QFrame()
         output_frame.setStyleSheet("""
             QFrame {
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 10px;
+                background: #fafafa;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
             }
         """)
+        output_frame.setMinimumWidth(350)  # Minimum, not fixed
         
         output_layout = QVBoxLayout(output_frame)
         output_layout.setContentsMargins(0, 0, 0, 0)
@@ -110,8 +180,17 @@ class MainWindow(QMainWindow):
         self.output_panel = OutputPanel()
         output_layout.addWidget(self.output_panel)
         
-        content_layout.addWidget(output_frame, 1)
+        self.splitter.addWidget(output_frame)
         
+        # Set stretch factors (input: 2, output: 3) for proportional sizing
+        self.splitter.setStretchFactor(0, 2)
+        self.splitter.setStretchFactor(1, 3)
+        
+        # Allow collapsing but with minimum sizes
+        self.splitter.setCollapsible(0, False)
+        self.splitter.setCollapsible(1, False)
+        
+        content_layout.addWidget(self.splitter)
         main_layout.addWidget(content, 1)
         
         # Status bar
@@ -119,8 +198,8 @@ class MainWindow(QMainWindow):
         self.status_bar.setStyleSheet("""
             QStatusBar {
                 background: white;
-                border-top: 1px solid #e2e8f0;
-                padding: 6px 16px;
+                border-top: 1px solid #d1d5db;
+                padding: 5px 14px;
                 font-size: 12px;
                 color: #6b7280;
             }

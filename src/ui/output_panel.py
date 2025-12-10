@@ -1,15 +1,15 @@
 """
-Output Panel - Clean and Spacious Design
+Output Panel - Responsive with Visible Scrollbars
 """
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QTableWidget, QTableWidgetItem,
     QFrame, QTextEdit, QHeaderView, QScrollArea,
-    QApplication, QMessageBox
+    QApplication, QMessageBox, QSizePolicy
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtGui import QColor
 
 from typing import List, Optional
 from ..core.models import ProcessingResult, Table13Row
@@ -17,7 +17,7 @@ from ..utils.formatters import format_table13_tsv
 
 
 class OutputPanel(QWidget):
-    """Clean results display panel."""
+    """Responsive results panel with scrolling."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -26,31 +26,41 @@ class OutputPanel(QWidget):
         self._setup_ui()
     
     def _setup_ui(self):
+        # Scroll area with VISIBLE scrollbars
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setStyleSheet("QScrollArea { border: none; background: #f8fafc; }")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("""
+            QScrollArea { 
+                border: none; 
+                background: #fafafa; 
+            }
+        """)
         
         content = QWidget()
-        content.setStyleSheet("background: #f8fafc;")
+        content.setStyleSheet("background: #fafafa;")
+        content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        
         layout = QVBoxLayout(content)
-        layout.setSpacing(20)
-        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setSpacing(16)
+        layout.setContentsMargins(20, 20, 20, 20)
         
         # Header
         header = QLabel("Results")
-        header.setStyleSheet("font-size: 18px; font-weight: 600; color: #1f2937;")
+        header.setStyleSheet("font-size: 16px; font-weight: 600; color: #1f2937;")
         layout.addWidget(header)
         
         # Placeholder
-        self.placeholder = QLabel("Enter details and click 'Generate Table 13' to see results")
+        self.placeholder = QLabel("Fill in details on the left and click\n'Generate Table 13' to see results")
         self.placeholder.setStyleSheet("""
-            font-size: 14px;
+            font-size: 13px;
             color: #9ca3af;
-            padding: 60px 30px;
+            padding: 40px 20px;
             background: white;
             border: 1px dashed #d1d5db;
-            border-radius: 8px;
+            border-radius: 6px;
         """)
         self.placeholder.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.placeholder)
@@ -58,9 +68,10 @@ class OutputPanel(QWidget):
         # Stats row
         self.stats_widget = QWidget()
         self.stats_widget.setStyleSheet("background: transparent;")
+        self.stats_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         stats_layout = QHBoxLayout(self.stats_widget)
         stats_layout.setContentsMargins(0, 0, 0, 0)
-        stats_layout.setSpacing(16)
+        stats_layout.setSpacing(12)
         
         self.stat_total = self._make_stat("0", "Total")
         self.stat_matched = self._make_stat("0", "Matched", "#16a34a")
@@ -79,13 +90,15 @@ class OutputPanel(QWidget):
         # Table section
         self.table_section = QWidget()
         self.table_section.setStyleSheet("background: transparent;")
+        self.table_section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         table_layout = QVBoxLayout(self.table_section)
         table_layout.setContentsMargins(0, 0, 0, 0)
-        table_layout.setSpacing(12)
+        table_layout.setSpacing(10)
         
+        # Table header with copy button
         table_header = QHBoxLayout()
         table_title = QLabel("Table 13 Output")
-        table_title.setStyleSheet("font-size: 14px; font-weight: 600; color: #374151;")
+        table_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #374151;")
         table_header.addWidget(table_title)
         table_header.addStretch()
         
@@ -93,12 +106,12 @@ class OutputPanel(QWidget):
         self.copy_btn.setCursor(Qt.PointingHandCursor)
         self.copy_btn.setStyleSheet("""
             QPushButton {
-                font-size: 12px;
+                font-size: 11px;
                 color: white;
                 background: #16a34a;
                 border: none;
-                border-radius: 5px;
-                padding: 8px 16px;
+                border-radius: 4px;
+                padding: 6px 12px;
             }
             QPushButton:hover { background: #15803d; }
         """)
@@ -107,34 +120,37 @@ class OutputPanel(QWidget):
         
         table_layout.addLayout(table_header)
         
+        # Results table
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(6)
         self.results_table.setHorizontalHeaderLabels([
             "Document Type", "From", "To", "Total", "Cancelled", "Net"
         ])
+        self.results_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.results_table.setMinimumHeight(100)
         self.results_table.setStyleSheet("""
             QTableWidget {
-                font-size: 13px;
+                font-size: 12px;
                 background: white;
-                border: 1px solid #e5e7eb;
-                border-radius: 6px;
-                gridline-color: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: 5px;
+                gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px 8px;
+                padding: 8px 6px;
             }
             QTableWidget::item:selected {
                 background: #eff6ff;
                 color: #1f2937;
             }
             QHeaderView::section {
-                background: #f9fafb;
+                background: #f3f4f6;
                 color: #6b7280;
                 font-weight: 600;
-                font-size: 12px;
-                padding: 10px 8px;
+                font-size: 11px;
+                padding: 8px 6px;
                 border: none;
-                border-bottom: 1px solid #e5e7eb;
+                border-bottom: 1px solid #d1d5db;
             }
         """)
         
@@ -143,34 +159,33 @@ class OutputPanel(QWidget):
         for i in range(1, 6):
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
         
-        self.results_table.setAlternatingRowColors(False)
         self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.results_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.results_table.verticalHeader().setVisible(False)
-        self.results_table.setMinimumHeight(120)
         
-        table_layout.addWidget(self.results_table)
+        table_layout.addWidget(self.results_table, 1)
         
         self.table_section.hide()
-        layout.addWidget(self.table_section)
+        layout.addWidget(self.table_section, 1)
         
-        # Warnings
+        # Warnings section
         self.warnings_widget = QWidget()
+        self.warnings_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         warnings_layout = QVBoxLayout(self.warnings_widget)
         warnings_layout.setContentsMargins(0, 0, 0, 0)
-        warnings_layout.setSpacing(8)
+        warnings_layout.setSpacing(6)
         
         warnings_title = QLabel("⚠ Warnings")
-        warnings_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #b45309;")
+        warnings_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #b45309;")
         warnings_layout.addWidget(warnings_title)
         
         self.warnings_text = QLabel()
         self.warnings_text.setStyleSheet("""
-            font-size: 12px;
+            font-size: 11px;
             color: #92400e;
             background: #fef3c7;
-            padding: 12px 14px;
-            border-radius: 6px;
+            padding: 10px;
+            border-radius: 5px;
         """)
         self.warnings_text.setWordWrap(True)
         warnings_layout.addWidget(self.warnings_text)
@@ -178,15 +193,16 @@ class OutputPanel(QWidget):
         self.warnings_widget.hide()
         layout.addWidget(self.warnings_widget)
         
-        # Missing invoices
+        # Missing invoices section
         self.missing_widget = QWidget()
+        self.missing_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         missing_layout = QVBoxLayout(self.missing_widget)
         missing_layout.setContentsMargins(0, 0, 0, 0)
-        missing_layout.setSpacing(8)
+        missing_layout.setSpacing(6)
         
         missing_header = QHBoxLayout()
-        missing_title = QLabel("Cancelled/Missing Invoices")
-        missing_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #dc2626;")
+        missing_title = QLabel("Cancelled/Missing")
+        missing_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #dc2626;")
         missing_header.addWidget(missing_title)
         missing_header.addStretch()
         
@@ -194,12 +210,12 @@ class OutputPanel(QWidget):
         self.copy_missing_btn.setCursor(Qt.PointingHandCursor)
         self.copy_missing_btn.setStyleSheet("""
             QPushButton {
-                font-size: 11px;
+                font-size: 10px;
                 color: #6b7280;
                 background: #f3f4f6;
                 border: none;
-                border-radius: 4px;
-                padding: 5px 10px;
+                border-radius: 3px;
+                padding: 4px 8px;
             }
             QPushButton:hover { background: #e5e7eb; }
         """)
@@ -210,15 +226,15 @@ class OutputPanel(QWidget):
         
         self.missing_text = QTextEdit()
         self.missing_text.setReadOnly(True)
-        self.missing_text.setMaximumHeight(100)
+        self.missing_text.setMaximumHeight(80)
         self.missing_text.setStyleSheet("""
             QTextEdit {
-                font-size: 12px;
-                font-family: 'Consolas', monospace;
+                font-size: 11px;
+                font-family: Consolas, monospace;
                 background: #fef2f2;
                 border: 1px solid #fecaca;
-                border-radius: 6px;
-                padding: 10px;
+                border-radius: 5px;
+                padding: 8px;
             }
         """)
         missing_layout.addWidget(self.missing_text)
@@ -226,27 +242,28 @@ class OutputPanel(QWidget):
         self.missing_widget.hide()
         layout.addWidget(self.missing_widget)
         
-        # Unmatched
+        # Unmatched section
         self.unmatched_widget = QWidget()
+        self.unmatched_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         unmatched_layout = QVBoxLayout(self.unmatched_widget)
         unmatched_layout.setContentsMargins(0, 0, 0, 0)
-        unmatched_layout.setSpacing(8)
+        unmatched_layout.setSpacing(6)
         
         unmatched_title = QLabel("Unmatched (different format?)")
-        unmatched_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #6b7280;")
+        unmatched_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #6b7280;")
         unmatched_layout.addWidget(unmatched_title)
         
         self.unmatched_text = QTextEdit()
         self.unmatched_text.setReadOnly(True)
-        self.unmatched_text.setMaximumHeight(80)
+        self.unmatched_text.setMaximumHeight(70)
         self.unmatched_text.setStyleSheet("""
             QTextEdit {
-                font-size: 12px;
-                font-family: 'Consolas', monospace;
+                font-size: 11px;
+                font-family: Consolas, monospace;
                 background: #f3f4f6;
-                border: 1px solid #e5e7eb;
-                border-radius: 6px;
-                padding: 10px;
+                border: 1px solid #d1d5db;
+                border-radius: 5px;
+                padding: 8px;
             }
         """)
         unmatched_layout.addWidget(self.unmatched_text)
@@ -263,27 +280,27 @@ class OutputPanel(QWidget):
         main_layout.addWidget(scroll)
     
     def _make_stat(self, value: str, label: str, color: str = "#1f2937") -> QWidget:
-        """Create a stat display widget."""
         widget = QWidget()
         widget.setStyleSheet("""
             background: white;
             border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 8px;
+            border-radius: 6px;
         """)
-        widget.setFixedWidth(100)
+        widget.setMinimumWidth(70)
+        widget.setMaximumWidth(100)
+        widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(2)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(1)
         
         value_label = QLabel(value)
-        value_label.setStyleSheet(f"font-size: 22px; font-weight: 700; color: {color}; background: transparent; border: none;")
+        value_label.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {color}; background: transparent; border: none;")
         value_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(value_label)
         
         name_label = QLabel(label)
-        name_label.setStyleSheet("font-size: 11px; color: #9ca3af; background: transparent; border: none;")
+        name_label.setStyleSheet("font-size: 10px; color: #9ca3af; background: transparent; border: none;")
         name_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(name_label)
         
@@ -291,7 +308,6 @@ class OutputPanel(QWidget):
         return widget
     
     def display_result(self, result: ProcessingResult, rows: List[Table13Row]):
-        """Display processing results."""
         self._current_result = result
         self._current_rows = rows
         
@@ -310,7 +326,7 @@ class OutputPanel(QWidget):
         # Update table
         self._populate_table(rows)
         
-        # Update warnings
+        # Warnings
         all_warnings = list(result.warnings)
         for series in result.series_results:
             all_warnings.extend(series.warnings)
@@ -321,13 +337,13 @@ class OutputPanel(QWidget):
         else:
             self.warnings_widget.hide()
         
-        # Update missing
+        # Missing
         missing_parts = []
         for series in result.series_results:
             if series.missing_invoices:
-                inv_list = ", ".join(series.missing_invoices[:20])
-                if len(series.missing_invoices) > 20:
-                    inv_list += f"  ...+{len(series.missing_invoices) - 20} more"
+                inv_list = ", ".join(series.missing_invoices[:15])
+                if len(series.missing_invoices) > 15:
+                    inv_list += f" ...+{len(series.missing_invoices) - 15} more"
                 missing_parts.append(inv_list)
         
         if missing_parts:
@@ -336,25 +352,24 @@ class OutputPanel(QWidget):
         else:
             self.missing_widget.hide()
         
-        # Update unmatched
+        # Unmatched
         if result.unmatched_invoices:
-            display = result.unmatched_invoices[:15]
+            display = result.unmatched_invoices[:10]
             text = "\n".join(display)
-            if len(result.unmatched_invoices) > 15:
-                text += f"\n...+{len(result.unmatched_invoices) - 15} more"
+            if len(result.unmatched_invoices) > 10:
+                text += f"\n...+{len(result.unmatched_invoices) - 10} more"
             self.unmatched_text.setText(text)
             self.unmatched_widget.show()
         else:
             self.unmatched_widget.hide()
     
     def _populate_table(self, rows: List[Table13Row]):
-        """Fill the results table."""
         self.results_table.setRowCount(len(rows))
         
         for row_idx, row in enumerate(rows):
             doc_type = row.nature_of_document
-            if len(doc_type) > 30:
-                doc_type = doc_type[:27] + "..."
+            if len(doc_type) > 25:
+                doc_type = doc_type[:22] + "..."
             
             items = [
                 QTableWidgetItem(doc_type),
@@ -381,7 +396,6 @@ class OutputPanel(QWidget):
     def _copy_table(self):
         if not self._current_rows:
             return
-        
         tsv = format_table13_tsv(self._current_rows)
         QApplication.clipboard().setText(tsv)
         QMessageBox.information(self, "Copied", "Table copied — paste into Excel or GST Portal")
@@ -389,11 +403,9 @@ class OutputPanel(QWidget):
     def _copy_missing(self):
         if not self._current_result:
             return
-        
         missing = []
         for series in self._current_result.series_results:
             missing.extend(series.missing_invoices)
-        
         if missing:
             QApplication.clipboard().setText("\n".join(missing))
             QMessageBox.information(self, "Copied", f"{len(missing)} invoice numbers copied")

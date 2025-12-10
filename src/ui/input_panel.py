@@ -1,11 +1,11 @@
 """
-Input Panel - Clean and Spacious Design
+Input Panel - Responsive with Visible Scrollbars
 """
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QComboBox, QLineEdit, QPlainTextEdit, QPushButton,
-    QFrame, QScrollArea
+    QFrame, QScrollArea, QSizePolicy
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
@@ -15,7 +15,7 @@ from ..utils.validators import validate_pattern_input, count_lines
 
 
 class InputPanel(QWidget):
-    """Clean step-by-step input panel."""
+    """Responsive input panel with scrolling."""
     
     process_requested = pyqtSignal()
     clear_requested = pyqtSignal()
@@ -27,57 +27,79 @@ class InputPanel(QWidget):
         self._connect_signals()
     
     def _setup_ui(self):
+        # Scroll area with VISIBLE scrollbars
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setStyleSheet("QScrollArea { border: none; background: white; }")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("""
+            QScrollArea { 
+                border: none; 
+                background: white; 
+            }
+        """)
         
         content = QWidget()
         content.setStyleSheet("background: white;")
+        content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        
         layout = QVBoxLayout(content)
-        layout.setSpacing(24)
-        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setSpacing(18)
+        layout.setContentsMargins(20, 20, 20, 20)
         
         # ===== STEP 1 =====
         layout.addWidget(self._make_step_label("1", "Document Type"))
         
         self.nature_combo = QComboBox()
-        self.nature_combo.setFixedHeight(42)
+        self.nature_combo.setMinimumHeight(38)
+        self.nature_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.nature_combo.setStyleSheet("""
             QComboBox {
                 font-size: 13px;
-                padding: 8px 14px;
+                padding: 8px 12px;
                 border: 1px solid #d1d5db;
-                border-radius: 6px;
+                border-radius: 5px;
                 background: white;
             }
             QComboBox:hover { border-color: #9ca3af; }
             QComboBox:focus { border-color: #3b82f6; }
-            QComboBox::drop-down { width: 32px; border: none; }
-            QComboBox QAbstractItemView { padding: 4px; }
+            QComboBox::drop-down { width: 28px; border: none; }
+            QComboBox::down-arrow { 
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #6b7280;
+            }
+            QComboBox QAbstractItemView { 
+                padding: 4px;
+                selection-background-color: #eff6ff;
+            }
         """)
         self.nature_combo.addItems(DocumentNature.get_all_values())
         layout.addWidget(self.nature_combo)
         
-        layout.addSpacing(16)
+        layout.addSpacing(8)
         
         # ===== STEP 2 =====
         layout.addWidget(self._make_step_label("2", "Invoice Format"))
         
-        hint = QLabel("Mark the serial number with [ ] brackets")
-        hint.setStyleSheet("font-size: 12px; color: #6b7280; margin-bottom: 8px;")
+        hint = QLabel("Put serial number in [ ] brackets")
+        hint.setStyleSheet("font-size: 11px; color: #6b7280;")
+        hint.setWordWrap(True)
         layout.addWidget(hint)
         
         self.pattern_input = QLineEdit()
-        self.pattern_input.setFixedHeight(44)
-        self.pattern_input.setPlaceholderText("e.g.  GST/24-25/[0001]  or  INV-[001]-A")
+        self.pattern_input.setMinimumHeight(40)
+        self.pattern_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.pattern_input.setPlaceholderText("e.g. GST/24-25/[0001]")
         self.pattern_input.setStyleSheet("""
             QLineEdit {
                 font-size: 14px;
-                font-family: 'Consolas', 'Courier New', monospace;
-                padding: 10px 14px;
+                font-family: Consolas, monospace;
+                padding: 8px 12px;
                 border: 1px solid #d1d5db;
-                border-radius: 6px;
+                border-radius: 5px;
                 background: white;
             }
             QLineEdit:hover { border-color: #9ca3af; }
@@ -85,79 +107,72 @@ class InputPanel(QWidget):
         """)
         layout.addWidget(self.pattern_input)
         
-        # Examples - compact
-        examples = QLabel(
-            "<span style='color: #6b7280;'>Examples:</span> "
-            "<code>GST/24-25/[0001]</code> · "
-            "<code>INV-[001]-SAL</code> · "
-            "<code>GST/*/[001]</code> <span style='color: #9ca3af;'>(* for multiple series)</span>"
-        )
-        examples.setStyleSheet("font-size: 11px; color: #9ca3af; margin-top: 6px;")
+        # Examples
+        examples = QLabel("Examples: GST/24-25/[0001] · INV-[001]-A · GST/*/[001]")
+        examples.setStyleSheet("font-size: 10px; color: #9ca3af;")
         examples.setWordWrap(True)
         layout.addWidget(examples)
         
-        # Validation feedback
+        # Feedback
         self.pattern_feedback = QLabel("")
-        self.pattern_feedback.setStyleSheet("font-size: 12px; margin-top: 4px;")
+        self.pattern_feedback.setStyleSheet("font-size: 11px;")
+        self.pattern_feedback.setWordWrap(True)
         self.pattern_feedback.hide()
         layout.addWidget(self.pattern_feedback)
         
-        layout.addSpacing(16)
+        layout.addSpacing(8)
         
         # ===== STEP 3 =====
         layout.addWidget(self._make_step_label("3", "Invoice List"))
         
-        paste_hint = QLabel("Paste from Excel or Tally — one invoice per line")
-        paste_hint.setStyleSheet("font-size: 12px; color: #6b7280; margin-bottom: 8px;")
+        paste_hint = QLabel("Paste from Excel/Tally (one per line)")
+        paste_hint.setStyleSheet("font-size: 11px; color: #6b7280;")
+        paste_hint.setWordWrap(True)
         layout.addWidget(paste_hint)
         
         self.invoice_input = QPlainTextEdit()
-        self.invoice_input.setMinimumHeight(180)
-        self.invoice_input.setPlaceholderText(
-            "GST/24-25/0001\n"
-            "GST/24-25/0002\n"
-            "GST/24-25/0003\n"
-            "..."
-        )
+        self.invoice_input.setMinimumHeight(140)
+        self.invoice_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.invoice_input.setPlaceholderText("GST/24-25/0001\nGST/24-25/0002\nGST/24-25/0003\n...")
         self.invoice_input.setStyleSheet("""
             QPlainTextEdit {
-                font-size: 13px;
-                font-family: 'Consolas', 'Courier New', monospace;
-                padding: 12px;
+                font-size: 12px;
+                font-family: Consolas, monospace;
+                padding: 10px;
                 border: 1px solid #d1d5db;
-                border-radius: 6px;
-                background: #fafafa;
-                line-height: 1.5;
+                border-radius: 5px;
+                background: #f9fafb;
             }
             QPlainTextEdit:focus { 
                 border-color: #3b82f6; 
                 background: white;
             }
         """)
-        layout.addWidget(self.invoice_input)
+        layout.addWidget(self.invoice_input, 1)  # Stretch factor
         
         self.line_count_label = QLabel("0 invoices")
-        self.line_count_label.setStyleSheet("font-size: 12px; color: #9ca3af;")
+        self.line_count_label.setStyleSheet("font-size: 11px; color: #9ca3af;")
         layout.addWidget(self.line_count_label)
         
-        layout.addSpacing(24)
+        layout.addSpacing(12)
         
         # ===== BUTTONS =====
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(12)
+        btn_layout.setSpacing(10)
         
         self.process_btn = QPushButton("Generate Table 13")
-        self.process_btn.setFixedHeight(46)
+        self.process_btn.setMinimumHeight(42)
+        self.process_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_btn.setCursor(Qt.PointingHandCursor)
         self.process_btn.setStyleSheet("""
             QPushButton {
-                font-size: 14px;
+                font-size: 13px;
                 font-weight: 600;
                 color: white;
                 background: #2563eb;
                 border: none;
-                border-radius: 8px;
-                padding: 12px 28px;
+                border-radius: 6px;
+                padding: 10px 20px;
             }
             QPushButton:hover { background: #1d4ed8; }
             QPushButton:pressed { background: #1e40af; }
@@ -166,23 +181,22 @@ class InputPanel(QWidget):
         btn_layout.addWidget(self.process_btn, 2)
         
         self.clear_btn = QPushButton("Clear")
-        self.clear_btn.setFixedHeight(46)
+        self.clear_btn.setMinimumHeight(42)
         self.clear_btn.setCursor(Qt.PointingHandCursor)
         self.clear_btn.setStyleSheet("""
             QPushButton {
-                font-size: 13px;
+                font-size: 12px;
                 color: #6b7280;
                 background: #f3f4f6;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                padding: 12px 20px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                padding: 10px 16px;
             }
             QPushButton:hover { background: #e5e7eb; }
         """)
         btn_layout.addWidget(self.clear_btn, 1)
         
         layout.addLayout(btn_layout)
-        layout.addStretch()
         
         scroll.setWidget(content)
         
@@ -191,26 +205,25 @@ class InputPanel(QWidget):
         main_layout.addWidget(scroll)
     
     def _make_step_label(self, num: str, text: str) -> QWidget:
-        """Create a simple step label."""
         widget = QWidget()
         layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 4)
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 2)
+        layout.setSpacing(8)
         
         num_label = QLabel(num)
-        num_label.setFixedSize(26, 26)
+        num_label.setFixedSize(22, 22)
         num_label.setAlignment(Qt.AlignCenter)
         num_label.setStyleSheet("""
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: white;
             background: #3b82f6;
-            border-radius: 13px;
+            border-radius: 11px;
         """)
         layout.addWidget(num_label)
         
         text_label = QLabel(text)
-        text_label.setStyleSheet("font-size: 14px; font-weight: 600; color: #1f2937;")
+        text_label.setStyleSheet("font-size: 13px; font-weight: 600; color: #1f2937;")
         layout.addWidget(text_label)
         
         layout.addStretch()
@@ -235,28 +248,24 @@ class InputPanel(QWidget):
             is_valid, error = validate_pattern_input(text)
             if not is_valid:
                 self.pattern_feedback.setText(f"✗ {error}")
-                self.pattern_feedback.setStyleSheet("font-size: 12px; color: #dc2626; margin-top: 4px;")
+                self.pattern_feedback.setStyleSheet("font-size: 11px; color: #dc2626;")
                 self.pattern_feedback.show()
             else:
-                wildcard_count = text.count('*')
-                msg = "✓ Format valid"
-                if wildcard_count > 0:
-                    msg += " — will detect multiple series"
+                msg = "✓ Valid"
+                if '*' in text:
+                    msg += " (multi-series)"
                 self.pattern_feedback.setText(msg)
-                self.pattern_feedback.setStyleSheet("font-size: 12px; color: #16a34a; margin-top: 4px;")
+                self.pattern_feedback.setStyleSheet("font-size: 11px; color: #16a34a;")
                 self.pattern_feedback.show()
         else:
             self.pattern_feedback.hide()
         self.input_changed.emit()
     
     def _on_invoice_changed(self):
-        text = self.invoice_input.toPlainText()
-        count = count_lines(text)
+        count = count_lines(self.invoice_input.toPlainText())
         self.line_count_label.setText(f"{count:,} invoice{'s' if count != 1 else ''}")
-        if count > 0:
-            self.line_count_label.setStyleSheet("font-size: 12px; color: #16a34a;")
-        else:
-            self.line_count_label.setStyleSheet("font-size: 12px; color: #9ca3af;")
+        color = "#16a34a" if count > 0 else "#9ca3af"
+        self.line_count_label.setStyleSheet(f"font-size: 11px; color: {color};")
         self.input_changed.emit()
     
     def validate_inputs(self) -> bool:
@@ -265,14 +274,14 @@ class InputPanel(QWidget):
         
         if not is_valid:
             self.pattern_feedback.setText(f"✗ {error}")
-            self.pattern_feedback.setStyleSheet("font-size: 12px; color: #dc2626; margin-top: 4px;")
+            self.pattern_feedback.setStyleSheet("font-size: 11px; color: #dc2626;")
             self.pattern_feedback.show()
             self.pattern_input.setFocus()
             return False
         
         if not self.invoice_input.toPlainText().strip():
-            self.pattern_feedback.setText("✗ Please paste invoice numbers")
-            self.pattern_feedback.setStyleSheet("font-size: 12px; color: #dc2626; margin-top: 4px;")
+            self.pattern_feedback.setText("✗ Paste invoice numbers first")
+            self.pattern_feedback.setStyleSheet("font-size: 11px; color: #dc2626;")
             self.pattern_feedback.show()
             self.invoice_input.setFocus()
             return False
@@ -285,7 +294,7 @@ class InputPanel(QWidget):
         self.invoice_input.clear()
         self.pattern_feedback.hide()
         self.line_count_label.setText("0 invoices")
-        self.line_count_label.setStyleSheet("font-size: 12px; color: #9ca3af;")
+        self.line_count_label.setStyleSheet("font-size: 11px; color: #9ca3af;")
     
     def get_document_nature(self) -> str:
         return self.nature_combo.currentText()
