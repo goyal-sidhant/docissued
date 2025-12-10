@@ -1,12 +1,12 @@
 """
-Output Panel - With Resizable Table and Expandable Sections
+Output Panel - Table expands and pushes content down, panel scrolls
 """
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QTableWidget, QTableWidgetItem,
     QFrame, QTextEdit, QHeaderView, QScrollArea,
-    QApplication, QMessageBox, QSizePolicy, QSplitter
+    QApplication, QMessageBox, QSizePolicy
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
@@ -16,48 +16,53 @@ from ..core.models import ProcessingResult, Table13Row
 from ..utils.formatters import format_table13_tsv
 
 
-# Visible scrollbar and splitter styles
-PANEL_STYLES = """
-    QScrollArea { 
-        border: none; 
-        background: #fafafa; 
-    }
-    QSplitter::handle:vertical {
-        background: #d1d5db;
-        height: 5px;
-        margin: 4px 0;
-        border-radius: 2px;
-    }
-    QSplitter::handle:vertical:hover {
-        background: #3b82f6;
-    }
-"""
-
-
 class OutputPanel(QWidget):
-    """Results panel with resizable table and expandable sections."""
+    """Results panel - table expands, content flows, panel scrolls."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self._current_result: Optional[ProcessingResult] = None
         self._current_rows: List[Table13Row] = []
+        self._table_expanded = False
         self._setup_ui()
     
     def _setup_ui(self):
-        # Main scroll area
+        # Scroll area for the ENTIRE panel
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll.setStyleSheet(PANEL_STYLES)
+        scroll.setStyleSheet("""
+            QScrollArea { 
+                border: none; 
+                background: #fafafa; 
+            }
+            QScrollBar:vertical {
+                background: #e5e7eb;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background: #9ca3af;
+                min-height: 30px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #6b7280;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0;
+            }
+        """)
         
+        # Content widget - everything flows vertically
         content = QWidget()
         content.setStyleSheet("background: #fafafa;")
-        content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         layout = QVBoxLayout(content)
-        layout.setSpacing(12)
+        layout.setSpacing(16)
         layout.setContentsMargins(20, 20, 20, 20)
         
         # Header
@@ -65,7 +70,7 @@ class OutputPanel(QWidget):
         header.setStyleSheet("font-size: 16px; font-weight: 600; color: #1f2937;")
         layout.addWidget(header)
         
-        # Placeholder (shown when no results)
+        # Placeholder
         self.placeholder = QLabel("Fill in details on the left and click\n'Generate Table 13' to see results")
         self.placeholder.setStyleSheet("""
             font-size: 13px;
@@ -81,7 +86,6 @@ class OutputPanel(QWidget):
         # Stats row
         self.stats_widget = QWidget()
         self.stats_widget.setStyleSheet("background: transparent;")
-        self.stats_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         stats_layout = QHBoxLayout(self.stats_widget)
         stats_layout.setContentsMargins(0, 0, 0, 0)
         stats_layout.setSpacing(12)
@@ -100,21 +104,14 @@ class OutputPanel(QWidget):
         self.stats_widget.hide()
         layout.addWidget(self.stats_widget)
         
-        # ========================================
-        # VERTICAL SPLITTER for table vs details
-        # ========================================
-        self.results_splitter = QSplitter(Qt.Vertical)
-        self.results_splitter.setStyleSheet(PANEL_STYLES)
-        self.results_splitter.setChildrenCollapsible(False)
-        
-        # --- TOP: Table section ---
+        # ========== TABLE SECTION ==========
         self.table_section = QWidget()
         self.table_section.setStyleSheet("background: transparent;")
         table_layout = QVBoxLayout(self.table_section)
         table_layout.setContentsMargins(0, 0, 0, 0)
         table_layout.setSpacing(8)
         
-        # Table header with copy button
+        # Table header row
         table_header = QHBoxLayout()
         table_title = QLabel("Table 13 Output")
         table_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #374151;")
@@ -125,6 +122,23 @@ class OutputPanel(QWidget):
         table_header.addWidget(resize_hint)
         
         table_header.addStretch()
+        
+        # Expand/Collapse button
+        self.expand_btn = QPushButton("▼ Show All Rows")
+        self.expand_btn.setCursor(Qt.PointingHandCursor)
+        self.expand_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 10px;
+                color: #6b7280;
+                background: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                padding: 4px 10px;
+            }
+            QPushButton:hover { background: #e5e7eb; }
+        """)
+        self.expand_btn.clicked.connect(self._toggle_table_expand)
+        table_header.addWidget(self.expand_btn)
         
         self.copy_btn = QPushButton("Copy for Excel")
         self.copy_btn.setCursor(Qt.PointingHandCursor)
@@ -144,14 +158,12 @@ class OutputPanel(QWidget):
         
         table_layout.addLayout(table_header)
         
-        # Results table with resizable columns
+        # Results table
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(6)
         self.results_table.setHorizontalHeaderLabels([
             "Document Type", "From", "To", "Total", "Cancelled", "Net"
         ])
-        self.results_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.results_table.setMinimumHeight(80)
         self.results_table.setStyleSheet("""
             QTableWidget {
                 font-size: 12px;
@@ -182,47 +194,35 @@ class OutputPanel(QWidget):
             }
         """)
         
-        # Make columns resizable by user
+        # Resizable columns
         header = self.results_table.horizontalHeader()
         header.setSectionsMovable(False)
         header.setStretchLastSection(False)
-        
-        # Document Type stretches, others are interactive (resizable)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         for i in range(1, 6):
             header.setSectionResizeMode(i, QHeaderView.Interactive)
         
-        # Set reasonable default widths
-        self.results_table.setColumnWidth(1, 130)  # From
-        self.results_table.setColumnWidth(2, 130)  # To
-        self.results_table.setColumnWidth(3, 55)   # Total
-        self.results_table.setColumnWidth(4, 70)   # Cancelled
-        self.results_table.setColumnWidth(5, 45)   # Net
+        self.results_table.setColumnWidth(1, 130)
+        self.results_table.setColumnWidth(2, 130)
+        self.results_table.setColumnWidth(3, 55)
+        self.results_table.setColumnWidth(4, 70)
+        self.results_table.setColumnWidth(5, 45)
         
         self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.results_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.results_table.verticalHeader().setVisible(False)
         
-        table_layout.addWidget(self.results_table, 1)
+        # Default: compact mode with max height
+        self.results_table.setMinimumHeight(80)
+        self.results_table.setMaximumHeight(200)
         
-        self.results_splitter.addWidget(self.table_section)
+        table_layout.addWidget(self.results_table)
         
-        # --- BOTTOM: Details section (warnings, missing, unmatched) ---
-        self.details_section = QWidget()
-        self.details_section.setStyleSheet("background: transparent;")
-        details_layout = QVBoxLayout(self.details_section)
-        details_layout.setContentsMargins(0, 8, 0, 0)
-        details_layout.setSpacing(12)
+        self.table_section.hide()
+        layout.addWidget(self.table_section)
         
-        # Resize hint for splitter
-        splitter_hint = QLabel("↕ Drag above line to resize table area")
-        splitter_hint.setStyleSheet("font-size: 10px; color: #9ca3af; font-style: italic;")
-        splitter_hint.setAlignment(Qt.AlignCenter)
-        details_layout.addWidget(splitter_hint)
-        
-        # Warnings section
+        # ========== WARNINGS SECTION ==========
         self.warnings_widget = QWidget()
-        self.warnings_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         warnings_layout = QVBoxLayout(self.warnings_widget)
         warnings_layout.setContentsMargins(0, 0, 0, 0)
         warnings_layout.setSpacing(4)
@@ -243,11 +243,10 @@ class OutputPanel(QWidget):
         warnings_layout.addWidget(self.warnings_text)
         
         self.warnings_widget.hide()
-        details_layout.addWidget(self.warnings_widget)
+        layout.addWidget(self.warnings_widget)
         
-        # Missing invoices section
+        # ========== MISSING SECTION ==========
         self.missing_widget = QWidget()
-        self.missing_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         missing_layout = QVBoxLayout(self.missing_widget)
         missing_layout.setContentsMargins(0, 0, 0, 0)
         missing_layout.setSpacing(4)
@@ -278,7 +277,7 @@ class OutputPanel(QWidget):
         
         self.missing_text = QTextEdit()
         self.missing_text.setReadOnly(True)
-        self.missing_text.setMinimumHeight(50)
+        self.missing_text.setMinimumHeight(60)
         self.missing_text.setMaximumHeight(150)
         self.missing_text.setStyleSheet("""
             QTextEdit {
@@ -293,11 +292,10 @@ class OutputPanel(QWidget):
         missing_layout.addWidget(self.missing_text)
         
         self.missing_widget.hide()
-        details_layout.addWidget(self.missing_widget)
+        layout.addWidget(self.missing_widget)
         
-        # Unmatched section
+        # ========== UNMATCHED SECTION ==========
         self.unmatched_widget = QWidget()
-        self.unmatched_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         unmatched_layout = QVBoxLayout(self.unmatched_widget)
         unmatched_layout.setContentsMargins(0, 0, 0, 0)
         unmatched_layout.setSpacing(4)
@@ -322,30 +320,34 @@ class OutputPanel(QWidget):
         unmatched_layout.addWidget(self.unmatched_text)
         
         self.unmatched_widget.hide()
-        details_layout.addWidget(self.unmatched_widget)
+        layout.addWidget(self.unmatched_widget)
         
-        details_layout.addStretch()
-        
-        self.results_splitter.addWidget(self.details_section)
-        
-        # Set splitter initial sizes (table gets more space)
-        self.results_splitter.setSizes([300, 150])
-        self.results_splitter.setStretchFactor(0, 2)  # Table expands more
-        self.results_splitter.setStretchFactor(1, 1)
-        
-        # Set cursor for splitter handle
-        handle = self.results_splitter.handle(1)
-        if handle:
-            handle.setCursor(Qt.SplitVCursor)
-        
-        self.results_splitter.hide()
-        layout.addWidget(self.results_splitter, 1)
+        # Spacer at bottom
+        layout.addStretch()
         
         scroll.setWidget(content)
         
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(scroll)
+    
+    def _toggle_table_expand(self):
+        """Toggle between compact and expanded table view."""
+        self._table_expanded = not self._table_expanded
+        
+        if self._table_expanded:
+            # Expanded: show all rows, no max height
+            row_count = self.results_table.rowCount()
+            # Calculate height: header (35px) + rows (35px each) + border (2px)
+            needed_height = 37 + (row_count * 35) + 2
+            self.results_table.setMaximumHeight(needed_height)
+            self.results_table.setMinimumHeight(needed_height)
+            self.expand_btn.setText("▲ Collapse")
+        else:
+            # Compact: limited height with scrolling
+            self.results_table.setMinimumHeight(80)
+            self.results_table.setMaximumHeight(200)
+            self.expand_btn.setText("▼ Show All Rows")
     
     def _make_stat(self, value: str, label: str, color: str = "#1f2937") -> QWidget:
         widget = QWidget()
@@ -356,7 +358,6 @@ class OutputPanel(QWidget):
         """)
         widget.setMinimumWidth(70)
         widget.setMaximumWidth(100)
-        widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(10, 8, 10, 8)
@@ -378,10 +379,16 @@ class OutputPanel(QWidget):
     def display_result(self, result: ProcessingResult, rows: List[Table13Row]):
         self._current_result = result
         self._current_rows = rows
+        self._table_expanded = False
         
         self.placeholder.hide()
         self.stats_widget.show()
-        self.results_splitter.show()
+        self.table_section.show()
+        
+        # Reset table to compact mode
+        self.results_table.setMinimumHeight(80)
+        self.results_table.setMaximumHeight(200)
+        self.expand_btn.setText("▼ Show All Rows")
         
         # Update stats
         total_cancelled = sum(s.cancelled_count for s in result.series_results)
@@ -487,12 +494,16 @@ class OutputPanel(QWidget):
     def clear_results(self):
         self._current_result = None
         self._current_rows = []
+        self._table_expanded = False
         
         self.placeholder.show()
         self.stats_widget.hide()
-        self.results_splitter.hide()
+        self.table_section.hide()
         self.warnings_widget.hide()
         self.missing_widget.hide()
         self.unmatched_widget.hide()
         
         self.results_table.setRowCount(0)
+        self.results_table.setMinimumHeight(80)
+        self.results_table.setMaximumHeight(200)
+        self.expand_btn.setText("▼ Show All Rows")
