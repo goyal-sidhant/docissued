@@ -41,8 +41,8 @@ def read_gstr1_excel(filepath: str) -> Tuple[List[PreviousSeriesInfo], str]:
         return [], f"File must start with 'GSTR1-Portal-'. Got: {filename}"
     
     # Check extension
-    if not filepath.lower().endswith(('.xlsx', '.xls')):
-        return [], "File must be an Excel file (.xlsx or .xls)"
+    if not filepath.lower().endswith('.xlsx'):
+        return [], "File must be an Excel file (.xlsx)"
     
     # Try to import openpyxl
     try:
@@ -55,9 +55,9 @@ def read_gstr1_excel(filepath: str) -> Tuple[List[PreviousSeriesInfo], str]:
     except Exception as e:
         return [], f"Could not open Excel file: {str(e)}"
     
-    # Find the Doc Issued sheet
+    # Find the DocIssued sheet
     sheet = None
-    sheet_names_to_try = ["Doc Issued", "doc issued", "DOC ISSUED", "b2b", "B2B"]
+    sheet_names_to_try = ["DocIssued", "docissued", "DOCISSUED", "b2b", "B2B"]
     
     for name in sheet_names_to_try:
         if name in wb.sheetnames:

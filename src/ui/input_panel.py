@@ -374,7 +374,7 @@ class InputPanel(QWidget):
             self,
             "Select Previous GSTR-1 File",
             "",
-            "Excel Files (GSTR1-Portal-*.xlsx GSTR1-Portal-*.xls);;All Excel Files (*.xlsx *.xls)"
+            "GSTR-1 Files (GSTR1-Portal-*.xlsx);;All Excel Files (*.xlsx)"
         )
         
         if filepath:
