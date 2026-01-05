@@ -16,6 +16,7 @@ from .output_panel import OutputPanel
 from ..core.pattern_parser import PatternParser
 from ..core.invoice_processor import InvoiceProcessor
 from ..core.series_analyzer import SeriesAnalyzer
+from ..core.continuity_checker import check_continuity
 
 
 # Visible scrollbar style - not camouflaged
@@ -243,6 +244,14 @@ class MainWindow(QMainWindow):
             rows = analyzer.to_table13_rows(result)
             
             self.output_panel.display_result(result, rows)
+            
+            # Check continuity if previous GSTR-1 was loaded
+            previous_series = self.input_panel.get_previous_series()
+            if previous_series:
+                continuity_results = check_continuity(previous_series, result)
+                self.output_panel.display_continuity_results(continuity_results)
+            else:
+                self.output_panel.display_continuity_results(None)
             
             cancelled = sum(s.cancelled_count for s in result.series_results)
             self.status_bar.showMessage(

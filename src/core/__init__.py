@@ -16,6 +16,9 @@ from .models import (
 from .pattern_parser import PatternParser, parse_pattern
 from .invoice_processor import InvoiceProcessor, process_invoices
 from .series_analyzer import SeriesAnalyzer, analyze_invoices
+from .pattern_detector import detect_pattern
+from .excel_reader import read_gstr1_excel, PreviousSeriesInfo
+from .continuity_checker import check_continuity, ContinuityResult, format_continuity_report
 
 __all__ = [
     # Models
@@ -37,4 +40,16 @@ __all__ = [
     # Series analysis
     'SeriesAnalyzer',
     'analyze_invoices',
+    
+    # Pattern detection
+    'detect_pattern',
+    
+    # Excel reader
+    'read_gstr1_excel',
+    'PreviousSeriesInfo',
+    
+    # Continuity checking
+    'check_continuity',
+    'ContinuityResult',
+    'format_continuity_report',
 ]

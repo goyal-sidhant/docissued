@@ -7,13 +7,11 @@ A desktop application for Indian GST practitioners to automate GSTR-1 Table 13 (
 Table 13 of GSTR-1 requires a summary of all document series issued during a tax period — invoice ranges, totals, and cancelled counts. Doing this manually is tedious and error-prone.
 
 **Sahaj automates this:**
-
 1. Paste your invoice numbers from Tally/Excel
 2. Enter your invoice format pattern
 3. Get Table 13 output with one click
 
 The app automatically:
-
 - Detects multiple invoice series (branches, years, document types)
 - Identifies gaps in sequence (cancelled/missing invoices)
 - Calculates From, To, Total, Cancelled, and Net for each series
@@ -41,7 +39,6 @@ No coding knowledge required. The interface is designed for accounting professio
 ## Installation
 
 ### Prerequisites
-
 - Python 3.8 or higher
 - pip (Python package manager)
 
@@ -60,7 +57,6 @@ python main.py
 ```
 
 ### Dependencies
-
 - PyQt5 (GUI framework)
 
 ## Usage
@@ -68,7 +64,6 @@ python main.py
 ### Step 1: Select Document Type
 
 Choose the type of document from the dropdown:
-
 - Invoices for outward supply
 - Credit Note
 - Debit Note
@@ -79,20 +74,20 @@ Choose the type of document from the dropdown:
 
 Specify your invoice numbering pattern using this notation:
 
-| Symbol          | Meaning                                 | Example           |
-| --------------- | --------------------------------------- | ----------------- |
-| `[NNN]`         | Serial number (put in brackets)         | `[001]`, `[0001]` |
-| `*`             | Variable part (branch code, etc.)       | `GST/*/[001]`     |
-| Everything else | Fixed text that appears in all invoices | `GST/24-25/`      |
+| Symbol | Meaning | Example |
+|--------|---------|---------|
+| `[NNN]` | Serial number (put in brackets) | `[001]`, `[0001]` |
+| `*` | Variable part (branch code, etc.) | `GST/*/[001]` |
+| Everything else | Fixed text that appears in all invoices | `GST/24-25/` |
 
 **Examples:**
 
-| Your Invoices                                | Pattern to Enter   |
-| -------------------------------------------- | ------------------ |
-| `GST/24-25/0001`, `GST/24-25/0002`           | `GST/24-25/[0001]` |
-| `INV-001-SAL`, `INV-002-SAL`                 | `INV-[001]-SAL`    |
-| `GST/A/001`, `GST/B/001` (multiple branches) | `GST/*/[001]`      |
-| `GST/MUM/001/24-25`, `GST/DEL/001/24-25`     | `GST/*/[001]/*`    |
+| Your Invoices | Pattern to Enter |
+|---------------|------------------|
+| `GST/24-25/0001`, `GST/24-25/0002` | `GST/24-25/[0001]` |
+| `INV-001-SAL`, `INV-002-SAL` | `INV-[001]-SAL` |
+| `GST/A/001`, `GST/B/001` (multiple branches) | `GST/*/[001]` |
+| `GST/MUM/001/24-25`, `GST/DEL/001/24-25` | `GST/*/[001]/*` |
 
 ### Step 3: Paste Invoice Numbers
 
@@ -117,7 +112,6 @@ Click **"Generate Table 13"** to see:
 ### Step 5: Copy and Paste
 
 Click **"Copy for Excel"** to copy the table. Paste directly into:
-
 - Excel spreadsheet
 - GST Portal Table 13 input
 - Any other application
@@ -138,7 +132,6 @@ Matches: GST/001/24-25, GST/002/24-25, GST/100/24-25
 Use `*` for parts that vary between series but should be grouped separately.
 
 **Example — Multiple Branches:**
-
 ```
 Pattern: GST/*/[001]/*
 Input:
@@ -178,22 +171,22 @@ Matches: GST/001/24-25, INV/001/23-24, etc.
 
 The Table 13 output includes:
 
-| Column        | Description                                |
-| ------------- | ------------------------------------------ |
-| Document Type | Selected document nature                   |
-| From          | First invoice number in series             |
-| To            | Last invoice number in series              |
-| Total         | Count of invoices from first to last       |
-| Cancelled     | Count of missing/cancelled in range        |
-| Net           | Actual invoices issued (Total - Cancelled) |
+| Column | Description |
+|--------|-------------|
+| Document Type | Selected document nature |
+| From | First invoice number in series |
+| To | Last invoice number in series |
+| Total | Count of invoices from first to last |
+| Cancelled | Count of missing/cancelled in range |
+| Net | Actual invoices issued (Total - Cancelled) |
 
 ## Warnings Explained
 
-| Warning                  | Meaning                                                            |
-| ------------------------ | ------------------------------------------------------------------ |
-| Multiple series detected | Your invoices belong to different series (branches, years, etc.)   |
-| High cancellation ratio  | More than 20% of invoices in range are missing — verify if correct |
-| Duplicate invoices found | Same invoice number appears multiple times                         |
+| Warning | Meaning |
+|---------|---------|
+| Multiple series detected | Your invoices belong to different series (branches, years, etc.) |
+| High cancellation ratio | More than 20% of invoices in range are missing — verify if correct |
+| Duplicate invoices found | Same invoice number appears multiple times |
 
 ## Project Structure
 
@@ -237,7 +230,6 @@ pytest tests/ -v
 ## Contributing
 
 Contributions welcome! Please:
-
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
@@ -250,9 +242,8 @@ MIT License — free for personal and commercial use.
 ## Support
 
 For issues, feature requests, or questions:
-
 - Open an issue on GitHub
-- Contact: sidhantgoyal@outlook.com
+- Contact: [your email]
 
 ---
 

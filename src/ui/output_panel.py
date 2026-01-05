@@ -331,6 +331,35 @@ class OutputPanel(QWidget):
         self.unmatched_widget.hide()
         layout.addWidget(self.unmatched_widget)
         
+        # ========== CONTINUITY CHECK SECTION ==========
+        self.continuity_widget = QWidget()
+        continuity_layout = QVBoxLayout(self.continuity_widget)
+        continuity_layout.setContentsMargins(0, 0, 0, 0)
+        continuity_layout.setSpacing(4)
+        
+        continuity_title = QLabel("📋 Continuity Check (vs Previous GSTR-1)")
+        continuity_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #1e40af;")
+        continuity_layout.addWidget(continuity_title)
+        
+        self.continuity_text = QTextEdit()
+        self.continuity_text.setReadOnly(True)
+        self.continuity_text.setMinimumHeight(80)
+        self.continuity_text.setMaximumHeight(200)
+        self.continuity_text.setStyleSheet("""
+            QTextEdit {
+                font-size: 11px;
+                font-family: Consolas, monospace;
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 5px;
+                padding: 8px;
+            }
+        """)
+        continuity_layout.addWidget(self.continuity_text)
+        
+        self.continuity_widget.hide()
+        layout.addWidget(self.continuity_widget)
+        
         # Spacer at bottom
         layout.addStretch()
         
@@ -569,9 +598,60 @@ class OutputPanel(QWidget):
         self.warnings_widget.hide()
         self.missing_widget.hide()
         self.unmatched_widget.hide()
+        self.continuity_widget.hide()
         
         self.results_table.setRowCount(0)
         self.results_table.setMinimumHeight(80)
         self.results_table.setMaximumHeight(200)
         self.results_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.expand_btn.setText("▼ Show All Rows")
+    
+    def display_continuity_results(self, continuity_results):
+        """Display continuity check results."""
+        if not continuity_results:
+            self.continuity_widget.hide()
+            return
+        
+        lines = []
+        ok_count = 0
+        gap_count = 0
+        new_count = 0
+        
+        for result in continuity_results:
+            if result.previous_to is None:
+                new_count += 1
+                status_icon = "ℹ️"
+            elif result.is_continuous:
+                ok_count += 1
+                status_icon = "✓"
+            else:
+                gap_count += 1
+                status_icon = "⚠️"
+            
+            lines.append(f"{status_icon} {result.series_display_name}")
+            lines.append(f"   Current: {result.current_from} → {result.current_to}")
+            if result.previous_to:
+                lines.append(f"   Previous ended: {result.previous_to}")
+            if result.message:
+                # Shorten message for display
+                msg = result.message
+                if msg.startswith("✓ "):
+                    msg = msg[2:]
+                elif msg.startswith("⚠️ "):
+                    msg = msg[3:]
+                elif msg.startswith("ℹ️ "):
+                    msg = msg[3:]
+                lines.append(f"   → {msg}")
+            lines.append("")
+        
+        # Summary at top
+        summary = f"Summary: {ok_count} OK"
+        if gap_count > 0:
+            summary += f", {gap_count} with gaps"
+        if new_count > 0:
+            summary += f", {new_count} new series"
+        
+        full_text = summary + "\n" + "─" * 40 + "\n\n" + "\n".join(lines)
+        
+        self.continuity_text.setText(full_text)
+        self.continuity_widget.show()

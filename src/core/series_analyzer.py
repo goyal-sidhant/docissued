@@ -61,39 +61,34 @@ class SeriesAnalyzer:
             result.warnings.append("No invoices in series")
             return result
         
-        # Get wildcard values from first invoice (all should be same for this series)
-        wildcard_values = invoices[0].wildcard_values if invoices else []
-        
-        # Extract all sequence numbers and detect ACTUAL padding from data
+        # Extract all sequence numbers and detect if series uses padding
         all_sequences = []
-        actual_padding = self.pattern.sequence_length
+        is_padded = False
         
         for inv in invoices:
             if inv.sequence_number is not None:
-                all_sequences.append(inv.sequence_number)
-                # Detect actual padding from the original sequence string
-                if inv.sequence_str:
-                    actual_padding = max(actual_padding, len(inv.sequence_str))
-        
-        # Use detected padding
-        result.sequence_padding = actual_padding
+                all_sequences.append((inv.sequence_number, inv.raw, inv.sequence_str))
+                # Check if any sequence has leading zeros (indicates padded format)
+                if inv.sequence_str and len(inv.sequence_str) > 1 and inv.sequence_str.startswith('0'):
+                    is_padded = True
         
         if not all_sequences:
             result.warnings.append("No valid sequence numbers found")
             return result
         
-        # Detect duplicates
+        # Detect duplicates and build sequence-to-invoice mapping
         unique_sequences = set()
         duplicates = []
         duplicate_count = 0
+        seq_to_invoice = {}  # Map sequence number to original invoice string
         
-        for inv in invoices:
-            seq = inv.sequence_number
-            if seq in unique_sequences:
-                duplicates.append(inv.raw)
+        for seq_num, raw_invoice, seq_str in all_sequences:
+            if seq_num in unique_sequences:
+                duplicates.append(raw_invoice)
                 duplicate_count += 1
             else:
-                unique_sequences.add(seq)
+                unique_sequences.add(seq_num)
+                seq_to_invoice[seq_num] = raw_invoice
         
         result.duplicate_invoices = duplicates
         result.duplicate_count = duplicate_count
@@ -105,17 +100,9 @@ class SeriesAnalyzer:
         result.end_number = sorted_sequences[-1]
         result.actual_count = len(unique_sequences)
         
-        # Reconstruct start and end invoice numbers with ACTUAL padding
-        result.start_invoice = self.processor.reconstruct_invoice(
-            result.start_number, 
-            wildcard_values,
-            result.sequence_padding
-        )
-        result.end_invoice = self.processor.reconstruct_invoice(
-            result.end_number,
-            wildcard_values,
-            result.sequence_padding
-        )
+        # Use ORIGINAL invoice strings for From/To (no reconstruction)
+        result.start_invoice = seq_to_invoice[result.start_number]
+        result.end_invoice = seq_to_invoice[result.end_number]
         
         # Calculate total in range
         result.total_in_range = result.end_number - result.start_number + 1
@@ -128,11 +115,19 @@ class SeriesAnalyzer:
         result.cancelled_count = len(missing_numbers)
         result.net_issued = result.actual_count
         
-        # Store missing as JUST the sequence numbers (padded), not full invoice
-        result.missing_invoices = [
-            str(num).zfill(result.sequence_padding)
-            for num in missing_numbers
-        ]
+        # Determine padding for missing invoices display
+        if is_padded:
+            # Find the padding length from actual data (max length of sequence strings)
+            max_seq_len = max(len(seq_str) for _, _, seq_str in all_sequences if seq_str)
+            result.sequence_padding = max_seq_len
+            result.missing_invoices = [
+                str(num).zfill(result.sequence_padding)
+                for num in missing_numbers
+            ]
+        else:
+            # Unpadded series: show numbers as-is
+            result.sequence_padding = 0
+            result.missing_invoices = [str(num) for num in missing_numbers]
         
         # Generate warnings
         self._generate_warnings(result)
