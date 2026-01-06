@@ -259,8 +259,9 @@ class MainWindow(QMainWindow):
             
             # Check continuity if previous GSTR-1 was loaded
             previous_series = self.input_panel.get_previous_series()
+            current_tax_period = self.input_panel.get_current_tax_period()
             if previous_series:
-                continuity_results = check_continuity(previous_series, result)
+                continuity_results = check_continuity(previous_series, result, current_tax_period)
                 self.output_panel.display_continuity_results(continuity_results)
             else:
                 self.output_panel.display_continuity_results(None)

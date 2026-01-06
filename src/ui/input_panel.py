@@ -13,6 +13,7 @@ from PyQt5.QtGui import QFont
 from ..core.models import DocumentNature
 from ..core.pattern_detector import detect_pattern
 from ..utils.validators import validate_pattern_input, count_lines
+from ..utils.fy_utils import get_recent_tax_periods, get_current_tax_period
 
 
 class InputPanel(QWidget):
@@ -204,6 +205,52 @@ class InputPanel(QWidget):
         self.prev_hint_label.setStyleSheet("font-size: 11px; color: #6b7280;")
         self.prev_hint_label.setWordWrap(True)
         layout.addWidget(self.prev_hint_label)
+
+        # Current Tax Period dropdown
+        period_row = QHBoxLayout()
+        period_row.setSpacing(10)
+
+        self.tax_period_label = QLabel("Current Tax Period:")
+        self.tax_period_label.setStyleSheet("font-size: 12px; color: #374151; font-weight: 500;")
+        period_row.addWidget(self.tax_period_label)
+
+        self.tax_period_combo = QComboBox()
+        self.tax_period_combo.setMinimumHeight(32)
+        self.tax_period_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.tax_period_combo.setStyleSheet("""
+            QComboBox {
+                font-size: 12px;
+                padding: 6px 10px;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                background: white;
+            }
+            QComboBox:hover { border-color: #9ca3af; }
+            QComboBox:focus { border-color: #3b82f6; }
+            QComboBox::drop-down { width: 24px; border: none; }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 3px solid transparent;
+                border-right: 3px solid transparent;
+                border-top: 4px solid #6b7280;
+            }
+        """)
+
+        # Populate with recent periods
+        periods = get_recent_tax_periods(24)  # Last 2 years
+        current_period = get_current_tax_period()
+        current_index = 0
+
+        for idx, (display, value) in enumerate(periods):
+            self.tax_period_combo.addItem(display, value)
+            if value == current_period:
+                current_index = idx
+
+        self.tax_period_combo.setCurrentIndex(current_index)
+        period_row.addWidget(self.tax_period_combo)
+
+        layout.addLayout(period_row)
+        layout.addSpacing(6)
         
         # File selection row
         file_layout = QHBoxLayout()
@@ -516,7 +563,11 @@ class InputPanel(QWidget):
     def get_previous_series(self):
         """Get loaded previous GSTR-1 series data."""
         return self._previous_series
-    
+
+    def get_current_tax_period(self) -> str:
+        """Get selected current tax period in MMYYYY format."""
+        return self.tax_period_combo.currentData()
+
     def get_ignore_leading_zeros(self) -> bool:
         return False
     
@@ -600,6 +651,28 @@ class InputPanel(QWidget):
             QPlainTextEdit:focus {{
                 border-color: #3b82f6;
                 background: white;
+            }}
+        """)
+
+        # Tax period combo
+        self.tax_period_label.setStyleSheet(f"font-size: {int(12*s)}px; color: #374151; font-weight: 500;")
+        self.tax_period_combo.setMinimumHeight(int(32 * s))
+        self.tax_period_combo.setStyleSheet(f"""
+            QComboBox {{
+                font-size: {int(12*s)}px;
+                padding: {int(6*s)}px {int(10*s)}px;
+                border: 1px solid #d1d5db;
+                border-radius: {int(4*s)}px;
+                background: white;
+            }}
+            QComboBox:hover {{ border-color: #9ca3af; }}
+            QComboBox:focus {{ border-color: #3b82f6; }}
+            QComboBox::drop-down {{ width: {int(24*s)}px; border: none; }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: {int(3*s)}px solid transparent;
+                border-right: {int(3*s)}px solid transparent;
+                border-top: {int(4*s)}px solid #6b7280;
             }}
         """)
 

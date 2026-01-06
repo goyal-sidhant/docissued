@@ -18,7 +18,8 @@ class PreviousSeriesInfo:
     to_invoice: str
     total: int
     cancelled: int
-    
+    tax_period: str = ""  # Tax period in MMYYYY format (e.g., "042024")
+
     # Extracted pattern info
     prefix: str = ""  # Everything before the sequence number
     suffix: str = ""  # Everything after the sequence number
@@ -75,10 +76,10 @@ def read_gstr1_excel(filepath: str) -> Tuple[List[PreviousSeriesInfo], str]:
     # Expected columns: Company GSTIN, Tax Period, Doc Type, From, To, Total, Cancelled, GSTR-1A
     headers = {}
     header_row = None
-    
+
     for row_idx, row in enumerate(sheet.iter_rows(max_row=15, values_only=True), 1):
         row_lower = [str(cell).lower().strip() if cell else "" for cell in row]
-        
+
         # Look for key columns
         if any('doc type' in cell or 'nature' in cell for cell in row_lower):
             header_row = row_idx
@@ -93,6 +94,8 @@ def read_gstr1_excel(filepath: str) -> Tuple[List[PreviousSeriesInfo], str]:
                     headers['total'] = col_idx
                 elif cell == 'cancelled':
                     headers['cancelled'] = col_idx
+                elif 'tax period' in cell or 'period' in cell:
+                    headers['tax_period'] = col_idx
             break
     
     if header_row is None or 'doc_type' not in headers or 'from' not in headers or 'to' not in headers:
@@ -100,46 +103,52 @@ def read_gstr1_excel(filepath: str) -> Tuple[List[PreviousSeriesInfo], str]:
     
     # Read data rows
     series_list = []
-    
+
     for row in sheet.iter_rows(min_row=header_row + 1, values_only=True):
         doc_type = str(row[headers['doc_type']]).strip() if row[headers['doc_type']] else ""
         from_inv = str(row[headers['from']]).strip() if row[headers['from']] else ""
         to_inv = str(row[headers['to']]).strip() if row[headers['to']] else ""
-        
+
         # Skip empty rows
         if not doc_type or not from_inv or not to_inv:
             continue
-        
+
         # Skip header-like rows that might be repeated
         if 'doc type' in doc_type.lower() or 'from' in doc_type.lower():
             continue
-        
+
         total = 0
         cancelled = 0
-        
+        tax_period = ""
+
         if 'total' in headers and row[headers['total']]:
             try:
                 total = int(row[headers['total']])
             except (ValueError, TypeError):
                 pass
-        
+
         if 'cancelled' in headers and row[headers['cancelled']]:
             try:
                 cancelled = int(row[headers['cancelled']])
             except (ValueError, TypeError):
                 pass
-        
+
+        if 'tax_period' in headers and row[headers['tax_period']]:
+            tax_period_raw = str(row[headers['tax_period']]).strip()
+            tax_period = _parse_tax_period_from_excel(tax_period_raw)
+
         info = PreviousSeriesInfo(
             doc_type=doc_type,
             from_invoice=from_inv,
             to_invoice=to_inv,
             total=total,
-            cancelled=cancelled
+            cancelled=cancelled,
+            tax_period=tax_period
         )
-        
+
         # Extract prefix/suffix from the 'to' invoice
         _extract_pattern_info(info)
-        
+
         series_list.append(info)
     
     wb.close()
@@ -148,6 +157,65 @@ def read_gstr1_excel(filepath: str) -> Tuple[List[PreviousSeriesInfo], str]:
         return [], "No document series found in the Excel file"
     
     return series_list, f"Found {len(series_list)} series from previous GSTR-1"
+
+
+def _parse_tax_period_from_excel(raw_value: str) -> str:
+    """
+    Parse tax period from Excel cell value to MMYYYY format.
+
+    Handles formats like:
+    - "042024" (already in MMYYYY format)
+    - "04/2024"
+    - "Apr 2024"
+    - "April 2024"
+    - etc.
+
+    Args:
+        raw_value: Raw tax period value from Excel
+
+    Returns:
+        Tax period in MMYYYY format, or empty string if cannot parse
+    """
+    import re
+
+    raw_value = raw_value.strip()
+
+    # Already in MMYYYY format
+    if re.match(r'^\d{6}$', raw_value):
+        return raw_value
+
+    # MM/YYYY or MM-YYYY format
+    match = re.match(r'^(\d{1,2})[-/](\d{4})$', raw_value)
+    if match:
+        month = int(match.group(1))
+        year = match.group(2)
+        if 1 <= month <= 12:
+            return f"{month:02d}{year}"
+
+    # Month name YYYY format (e.g., "Apr 2024", "April 2024")
+    month_names = {
+        "jan": "01", "january": "01",
+        "feb": "02", "february": "02",
+        "mar": "03", "march": "03",
+        "apr": "04", "april": "04",
+        "may": "05",
+        "jun": "06", "june": "06",
+        "jul": "07", "july": "07",
+        "aug": "08", "august": "08",
+        "sep": "09", "september": "09",
+        "oct": "10", "october": "10",
+        "nov": "11", "november": "11",
+        "dec": "12", "december": "12"
+    }
+
+    parts = raw_value.split()
+    if len(parts) == 2:
+        month_str, year_str = parts
+        month_code = month_names.get(month_str.lower())
+        if month_code and re.match(r'^\d{4}$', year_str):
+            return f"{month_code}{year_str}"
+
+    return ""
 
 
 def _extract_pattern_info(info: PreviousSeriesInfo) -> None:

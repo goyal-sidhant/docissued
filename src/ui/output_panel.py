@@ -25,6 +25,7 @@ class OutputPanel(QWidget):
         self._current_rows: List[Table13Row] = []
         self._table_expanded = False
         self._ui_scale = 1.0  # Default 100%
+        self._continuity_font_size = 11  # Default font size for continuity HTML
         self._setup_ui()
     
     def _setup_ui(self):
@@ -608,53 +609,106 @@ class OutputPanel(QWidget):
         self.expand_btn.setText("▼ Show All Rows")
     
     def display_continuity_results(self, continuity_results):
-        """Display continuity check results."""
+        """Display continuity check results with 4-color coding."""
         if not continuity_results:
             self.continuity_widget.hide()
             return
 
-        lines = []
+        html_lines = []
         ok_count = 0
         gap_count = 0
         new_count = 0
+        discontinued_count = 0
 
         for result in continuity_results:
-            if result.previous_to is None:
-                new_count += 1
-                status_icon = "ℹ️"
-            elif result.is_continuous:
+            # Determine color and icon based on status
+            status = getattr(result, 'status', 'new')
+
+            if status == "continuous":
                 ok_count += 1
                 status_icon = "✓"
-            else:
+                color = "#15803d"  # Dark green for continuous
+            elif status == "gap":
                 gap_count += 1
                 status_icon = "⚠️"
+                color = "#dc2626"  # Red for gaps
+            elif status == "discontinued":
+                discontinued_count += 1
+                status_icon = "⊗"
+                color = "#7c3aed"  # Purple for discontinued
+            else:  # new
+                new_count += 1
+                status_icon = "ℹ️"
+                color = "#1e40af"  # Blue for new series
 
-            lines.append(f"{status_icon} {result.series_display_name}")
-            lines.append(f"   Current: {result.current_from} → {result.current_to}")
+            # Build HTML for this series with color coding
+            html_lines.append(f'<span style="color: {color}; font-weight: 600;">{status_icon} {result.series_display_name}</span>')
+
+            # Show current range only if series is active in current period
+            if result.current_from:
+                html_lines.append(f'<span style="color: {color};">   Current: {result.current_from} → {result.current_to}</span>')
+
             if result.previous_to:
-                lines.append(f"   Previous ended: {result.previous_to}")
+                html_lines.append(f'<span style="color: {color};">   Previous ended: {result.previous_to}</span>')
+
             if result.message:
                 # Shorten message for display
                 msg = result.message
-                if msg.startswith("✓ "):
-                    msg = msg[2:]
-                elif msg.startswith("⚠️ "):
-                    msg = msg[3:]
-                elif msg.startswith("ℹ️ "):
-                    msg = msg[3:]
-                lines.append(f"   → {msg}")
-            lines.append("")
+                for prefix in ["✓ ", "⚠️ ", "ℹ️ ", "⊗ "]:
+                    if msg.startswith(prefix):
+                        msg = msg[len(prefix):]
+                        break
+                html_lines.append(f'<span style="color: {color};">   → {msg}</span>')
+            html_lines.append("")
 
-        # Summary at top
-        summary = f"Summary: {ok_count} OK"
+        # Summary at top with legend
+        summary_parts = []
+        if ok_count > 0:
+            summary_parts.append(f'<span style="color: #15803d;">✓ {ok_count} OK</span>')
         if gap_count > 0:
-            summary += f", {gap_count} with gaps"
+            summary_parts.append(f'<span style="color: #dc2626;">⚠️ {gap_count} with gaps</span>')
         if new_count > 0:
-            summary += f", {new_count} new series"
+            summary_parts.append(f'<span style="color: #1e40af;">ℹ️ {new_count} new</span>')
+        if discontinued_count > 0:
+            summary_parts.append(f'<span style="color: #7c3aed;">⊗ {discontinued_count} discontinued</span>')
 
-        full_text = summary + "\n" + "─" * 40 + "\n\n" + "\n".join(lines)
+        summary = "Summary: " + ", ".join(summary_parts) if summary_parts else "Summary: No series"
 
-        self.continuity_text.setText(full_text)
+        # Color legend with tooltips
+        legend = """
+<span style="color: #15803d;" title="Series continues from previous period">✓ Continuous</span> |
+<span style="color: #dc2626;" title="Gap detected from previous period">⚠️ Gap</span> |
+<span style="color: #1e40af;" title="New series not in previous period">ℹ️ New</span> |
+<span style="color: #7c3aed;" title="Series from previous period not continued">⊗ Discontinued</span>
+        """.strip()
+
+        # Build full HTML content with scaled font size
+        font_size = getattr(self, '_continuity_font_size', 11)  # Default to 11 if not set
+        full_html = f"""
+        <div style="font-family: Consolas, monospace; font-size: {font_size}px;">
+{summary}
+<div style="font-size: {int(font_size * 0.9)}px; color: #6b7280; margin: 4px 0;">
+{legend}
+</div>
+{"─" * 50}
+<div style="white-space: pre;">
+{'<br>'.join(html_lines)}
+</div>
+        </div>
+        """
+
+        self.continuity_text.setHtml(full_html)
+
+        # Set tooltip on the continuity text widget
+        tooltip_text = (
+            "Color Legend:\n"
+            "✓ Green = Continuous (series continues from previous period)\n"
+            "⚠️ Red = Gap detected (missing invoices from previous period)\n"
+            "ℹ️ Blue = New series (not found in previous period)\n"
+            "⊗ Purple = Discontinued (was in previous period but not in current)"
+        )
+        self.continuity_text.setToolTip(tooltip_text)
+
         self.continuity_widget.show()
 
     def apply_scale(self, scale: float):
@@ -788,6 +842,9 @@ class OutputPanel(QWidget):
                 padding: {int(8*s)}px;
             }}
         """)
+
+        # Store current scale for continuity text HTML rendering
+        self._continuity_font_size = int(11 * s)
 
         # Warnings text
         self.warnings_text.setStyleSheet(f"""
