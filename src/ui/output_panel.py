@@ -67,9 +67,9 @@ class OutputPanel(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         
         # Header
-        header = QLabel("Results")
-        header.setStyleSheet("font-size: 16px; font-weight: 600; color: #1f2937;")
-        layout.addWidget(header)
+        self.header_label = QLabel("Results")
+        self.header_label.setStyleSheet("font-size: 16px; font-weight: 600; color: #1f2937;")
+        layout.addWidget(self.header_label)
         
         # Placeholder
         self.placeholder = QLabel("Fill in details on the left and click\n'Generate Table 13' to see results")
@@ -114,13 +114,13 @@ class OutputPanel(QWidget):
         
         # Table header row
         table_header = QHBoxLayout()
-        table_title = QLabel("Table 13 Output")
-        table_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #374151;")
-        table_header.addWidget(table_title)
-        
-        resize_hint = QLabel("(drag columns to resize • Ctrl+C to copy selection)")
-        resize_hint.setStyleSheet("font-size: 10px; color: #9ca3af;")
-        table_header.addWidget(resize_hint)
+        self.table_title_label = QLabel("Table 13 Output")
+        self.table_title_label.setStyleSheet("font-size: 13px; font-weight: 600; color: #374151;")
+        table_header.addWidget(self.table_title_label)
+
+        self.resize_hint_label = QLabel("(drag columns to resize • Ctrl+C to copy selection)")
+        self.resize_hint_label.setStyleSheet("font-size: 10px; color: #9ca3af;")
+        table_header.addWidget(self.resize_hint_label)
         
         table_header.addStretch()
         
@@ -236,10 +236,10 @@ class OutputPanel(QWidget):
         warnings_layout = QVBoxLayout(self.warnings_widget)
         warnings_layout.setContentsMargins(0, 0, 0, 0)
         warnings_layout.setSpacing(4)
-        
-        warnings_title = QLabel("⚠ Warnings")
-        warnings_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #b45309;")
-        warnings_layout.addWidget(warnings_title)
+
+        self.warnings_title_label = QLabel("⚠ Warnings")
+        self.warnings_title_label.setStyleSheet("font-size: 12px; font-weight: 600; color: #b45309;")
+        warnings_layout.addWidget(self.warnings_title_label)
         
         self.warnings_text = QLabel()
         self.warnings_text.setStyleSheet("""
@@ -260,11 +260,11 @@ class OutputPanel(QWidget):
         missing_layout = QVBoxLayout(self.missing_widget)
         missing_layout.setContentsMargins(0, 0, 0, 0)
         missing_layout.setSpacing(4)
-        
+
         missing_header = QHBoxLayout()
-        missing_title = QLabel("Cancelled/Missing")
-        missing_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #dc2626;")
-        missing_header.addWidget(missing_title)
+        self.missing_title_label = QLabel("Cancelled/Missing")
+        self.missing_title_label.setStyleSheet("font-size: 12px; font-weight: 600; color: #dc2626;")
+        missing_header.addWidget(self.missing_title_label)
         missing_header.addStretch()
         
         self.copy_missing_btn = QPushButton("Copy")
@@ -309,10 +309,10 @@ class OutputPanel(QWidget):
         unmatched_layout = QVBoxLayout(self.unmatched_widget)
         unmatched_layout.setContentsMargins(0, 0, 0, 0)
         unmatched_layout.setSpacing(4)
-        
-        unmatched_title = QLabel("Unmatched (different format?)")
-        unmatched_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #6b7280;")
-        unmatched_layout.addWidget(unmatched_title)
+
+        self.unmatched_title_label = QLabel("Unmatched (different format?)")
+        self.unmatched_title_label.setStyleSheet("font-size: 12px; font-weight: 600; color: #6b7280;")
+        unmatched_layout.addWidget(self.unmatched_title_label)
         
         self.unmatched_text = QTextEdit()
         self.unmatched_text.setReadOnly(True)
@@ -337,10 +337,10 @@ class OutputPanel(QWidget):
         continuity_layout = QVBoxLayout(self.continuity_widget)
         continuity_layout.setContentsMargins(0, 0, 0, 0)
         continuity_layout.setSpacing(4)
-        
-        continuity_title = QLabel("📋 Continuity Check (vs Previous GSTR-1)")
-        continuity_title.setStyleSheet("font-size: 12px; font-weight: 600; color: #1e40af;")
-        continuity_layout.addWidget(continuity_title)
+
+        self.continuity_title_label = QLabel("📋 Continuity Check (vs Previous GSTR-1)")
+        self.continuity_title_label.setStyleSheet("font-size: 12px; font-weight: 600; color: #1e40af;")
+        continuity_layout.addWidget(self.continuity_title_label)
         
         self.continuity_text = QTextEdit()
         self.continuity_text.setReadOnly(True)
@@ -807,6 +807,15 @@ class OutputPanel(QWidget):
             border: 1px dashed #d1d5db;
             border-radius: {int(6*s)}px;
         """)
+
+        # Section title labels
+        self.header_label.setStyleSheet(f"font-size: {int(16*s)}px; font-weight: 600; color: #1f2937;")
+        self.table_title_label.setStyleSheet(f"font-size: {int(13*s)}px; font-weight: 600; color: #374151;")
+        self.resize_hint_label.setStyleSheet(f"font-size: {int(10*s)}px; color: #9ca3af;")
+        self.warnings_title_label.setStyleSheet(f"font-size: {int(12*s)}px; font-weight: 600; color: #b45309;")
+        self.missing_title_label.setStyleSheet(f"font-size: {int(12*s)}px; font-weight: 600; color: #dc2626;")
+        self.unmatched_title_label.setStyleSheet(f"font-size: {int(12*s)}px; font-weight: 600; color: #6b7280;")
+        self.continuity_title_label.setStyleSheet(f"font-size: {int(12*s)}px; font-weight: 600; color: #1e40af;")
 
         # Update stat boxes
         self._update_stat_box_scale(self.stat_total, s)

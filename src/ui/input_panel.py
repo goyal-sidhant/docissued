@@ -27,6 +27,7 @@ class InputPanel(QWidget):
         super().__init__(parent)
         self._previous_series = []  # Store loaded previous GSTR-1 data
         self._ui_scale = 1.0  # Default 100%
+        self._step_labels = []  # Store references to step labels for scaling
         self._setup_ui()
         self._connect_signals()
     
@@ -97,11 +98,11 @@ class InputPanel(QWidget):
         
         # ===== STEP 2: Invoice Format =====
         layout.addWidget(self._make_step_label("2", "Invoice Format"))
-        
-        hint = QLabel("Put serial number in [ ] brackets, use * for variable parts")
-        hint.setStyleSheet("font-size: 11px; color: #6b7280;")
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
+
+        self.hint_label = QLabel("Put serial number in [ ] brackets, use * for variable parts")
+        self.hint_label.setStyleSheet("font-size: 11px; color: #6b7280;")
+        self.hint_label.setWordWrap(True)
+        layout.addWidget(self.hint_label)
         
         self.pattern_input = QLineEdit()
         self.pattern_input.setMinimumHeight(40)
@@ -148,10 +149,10 @@ class InputPanel(QWidget):
         layout.addLayout(pattern_btn_layout)
         
         # Examples
-        examples = QLabel("Examples: GST/24-25/[0001] · INV-[001]-A · GST/*/[001]")
-        examples.setStyleSheet("font-size: 10px; color: #9ca3af;")
-        examples.setWordWrap(True)
-        layout.addWidget(examples)
+        self.examples_label = QLabel("Examples: GST/24-25/[0001] · INV-[001]-A · GST/*/[001]")
+        self.examples_label.setStyleSheet("font-size: 10px; color: #9ca3af;")
+        self.examples_label.setWordWrap(True)
+        layout.addWidget(self.examples_label)
         
         # Feedback
         self.pattern_feedback = QLabel("")
@@ -164,11 +165,11 @@ class InputPanel(QWidget):
         
         # ===== STEP 3: Invoice List =====
         layout.addWidget(self._make_step_label("3", "Invoice List"))
-        
-        paste_hint = QLabel("Paste from Excel/Tally (one per line)")
-        paste_hint.setStyleSheet("font-size: 11px; color: #6b7280;")
-        paste_hint.setWordWrap(True)
-        layout.addWidget(paste_hint)
+
+        self.paste_hint_label = QLabel("Paste from Excel/Tally (one per line)")
+        self.paste_hint_label.setStyleSheet("font-size: 11px; color: #6b7280;")
+        self.paste_hint_label.setWordWrap(True)
+        layout.addWidget(self.paste_hint_label)
         
         self.invoice_input = QPlainTextEdit()
         self.invoice_input.setMinimumHeight(120)
@@ -198,11 +199,11 @@ class InputPanel(QWidget):
         
         # ===== STEP 4: Previous GSTR-1 (Optional) =====
         layout.addWidget(self._make_step_label("4", "Previous GSTR-1 (Optional)"))
-        
-        prev_hint = QLabel("Upload last month's GSTR-1 to check continuity")
-        prev_hint.setStyleSheet("font-size: 11px; color: #6b7280;")
-        prev_hint.setWordWrap(True)
-        layout.addWidget(prev_hint)
+
+        self.prev_hint_label = QLabel("Upload last month's GSTR-1 to check continuity")
+        self.prev_hint_label.setStyleSheet("font-size: 11px; color: #6b7280;")
+        self.prev_hint_label.setWordWrap(True)
+        layout.addWidget(self.prev_hint_label)
         
         # File selection row
         file_layout = QHBoxLayout()
@@ -317,7 +318,7 @@ class InputPanel(QWidget):
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 2)
         layout.setSpacing(8)
-        
+
         num_label = QLabel(num)
         num_label.setFixedSize(22, 22)
         num_label.setAlignment(Qt.AlignCenter)
@@ -329,12 +330,16 @@ class InputPanel(QWidget):
             border-radius: 11px;
         """)
         layout.addWidget(num_label)
-        
+
         text_label = QLabel(text)
         text_label.setStyleSheet("font-size: 13px; font-weight: 600; color: #1f2937;")
         layout.addWidget(text_label)
-        
+
         layout.addStretch()
+
+        # Store references for scaling
+        self._step_labels.append((num_label, text_label))
+
         return widget
     
     def _connect_signals(self):
@@ -666,7 +671,13 @@ class InputPanel(QWidget):
         # Update step number labels
         self._update_step_labels_scale()
 
-        # Update all text labels
+        # Update hint labels
+        self.hint_label.setStyleSheet(f"font-size: {int(11*s)}px; color: #6b7280;")
+        self.paste_hint_label.setStyleSheet(f"font-size: {int(11*s)}px; color: #6b7280;")
+        self.prev_hint_label.setStyleSheet(f"font-size: {int(11*s)}px; color: #6b7280;")
+        self.examples_label.setStyleSheet(f"font-size: {int(10*s)}px; color: #9ca3af;")
+
+        # Update feedback and status labels dynamically
         for widget in [self.pattern_feedback, self.line_count_label, self.file_status]:
             if hasattr(widget, 'styleSheet'):
                 current_style = widget.styleSheet()
@@ -678,22 +689,15 @@ class InputPanel(QWidget):
     def _update_step_labels_scale(self):
         """Update step label styles with current scale."""
         s = self._ui_scale
-        # Find and update step number badges
-        for i in range(1, 5):
-            step_widget = self.layout().itemAt(0).widget().widget().layout().itemAt(i * 4).widget()
-            if step_widget:
-                num_label = step_widget.layout().itemAt(0).widget()
-                text_label = step_widget.layout().itemAt(1).widget()
 
-                if isinstance(num_label, QLabel):
-                    num_label.setFixedSize(int(22 * s), int(22 * s))
-                    num_label.setStyleSheet(f"""
-                        font-size: {int(12*s)}px;
-                        font-weight: 600;
-                        color: white;
-                        background: #3b82f6;
-                        border-radius: {int(11*s)}px;
-                    """)
+        for num_label, text_label in self._step_labels:
+            num_label.setFixedSize(int(22 * s), int(22 * s))
+            num_label.setStyleSheet(f"""
+                font-size: {int(12*s)}px;
+                font-weight: 600;
+                color: white;
+                background: #3b82f6;
+                border-radius: {int(11*s)}px;
+            """)
 
-                if isinstance(text_label, QLabel):
-                    text_label.setStyleSheet(f"font-size: {int(13*s)}px; font-weight: 600; color: #1f2937;")
+            text_label.setStyleSheet(f"font-size: {int(13*s)}px; font-weight: 600; color: #1f2937;")

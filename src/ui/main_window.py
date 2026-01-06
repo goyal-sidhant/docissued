@@ -339,6 +339,24 @@ class MainWindow(QMainWindow):
                 border-right: {int(3*s)}px solid transparent;
                 border-top: {int(4*s)}px solid #94a3b8;
             }}
+            QComboBox QAbstractItemView {{
+                background: #1e293b;
+                color: white;
+                selection-background-color: #3b82f6;
+                selection-color: white;
+                border: 1px solid #475569;
+                outline: none;
+            }}
+            QComboBox QAbstractItemView::item {{
+                padding: {int(6*s)}px {int(10*s)}px;
+                min-height: {int(24*s)}px;
+            }}
+            QComboBox QAbstractItemView::item:hover {{
+                background: #334155;
+            }}
+            QComboBox QAbstractItemView::item:selected {{
+                background: #3b82f6;
+            }}
         """)
 
     def _apply_statusbar_scale(self):
