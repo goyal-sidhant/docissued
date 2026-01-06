@@ -1,5 +1,5 @@
 @echo off
 pushd "path"
-python main.py
+pythonw main.py
 popd
 pause
