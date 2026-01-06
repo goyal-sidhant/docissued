@@ -26,6 +26,7 @@ class InputPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._previous_series = []  # Store loaded previous GSTR-1 data
+        self._ui_scale = 1.0  # Default 100%
         self._setup_ui()
         self._connect_signals()
     
@@ -522,3 +523,177 @@ class InputPanel(QWidget):
         self.nature_combo.setEnabled(not is_processing)
         self.auto_detect_btn.setEnabled(not is_processing)
         self.browse_btn.setEnabled(not is_processing)
+
+    def apply_scale(self, scale: float):
+        """Apply UI scale to all elements."""
+        self._ui_scale = scale
+        s = scale
+
+        # Update all styled widgets with scaled values
+        # Nature combo
+        self.nature_combo.setMinimumHeight(int(38 * s))
+        self.nature_combo.setStyleSheet(f"""
+            QComboBox {{
+                font-size: {int(13*s)}px;
+                padding: {int(8*s)}px {int(12*s)}px;
+                border: 1px solid #d1d5db;
+                border-radius: {int(5*s)}px;
+                background: white;
+            }}
+            QComboBox:hover {{ border-color: #9ca3af; }}
+            QComboBox:focus {{ border-color: #3b82f6; }}
+            QComboBox::drop-down {{ width: {int(28*s)}px; border: none; }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: {int(4*s)}px solid transparent;
+                border-right: {int(4*s)}px solid transparent;
+                border-top: {int(5*s)}px solid #6b7280;
+            }}
+        """)
+
+        # Pattern input
+        self.pattern_input.setMinimumHeight(int(40 * s))
+        self.pattern_input.setStyleSheet(f"""
+            QLineEdit {{
+                font-size: {int(14*s)}px;
+                font-family: Consolas, monospace;
+                padding: {int(8*s)}px {int(12*s)}px;
+                border: 1px solid #d1d5db;
+                border-radius: {int(5*s)}px;
+                background: white;
+            }}
+            QLineEdit:hover {{ border-color: #9ca3af; }}
+            QLineEdit:focus {{ border-color: #3b82f6; }}
+        """)
+
+        # Auto-detect button
+        self.auto_detect_btn.setMinimumHeight(int(32 * s))
+        self.auto_detect_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(11*s)}px;
+                color: #1f2937;
+                background: #fef3c7;
+                border: 1px solid #fcd34d;
+                border-radius: {int(4*s)}px;
+                padding: {int(6*s)}px {int(12*s)}px;
+            }}
+            QPushButton:hover {{ background: #fde68a; }}
+            QPushButton:pressed {{ background: #fcd34d; }}
+        """)
+
+        # Invoice input textarea
+        self.invoice_input.setMinimumHeight(int(120 * s))
+        self.invoice_input.setStyleSheet(f"""
+            QPlainTextEdit {{
+                font-size: {int(12*s)}px;
+                font-family: Consolas, monospace;
+                padding: {int(10*s)}px;
+                border: 1px solid #d1d5db;
+                border-radius: {int(5*s)}px;
+                background: #f9fafb;
+            }}
+            QPlainTextEdit:focus {{
+                border-color: #3b82f6;
+                background: white;
+            }}
+        """)
+
+        # File selection widgets
+        self.file_path_label.setStyleSheet(f"""
+            font-size: {int(11*s)}px;
+            color: #6b7280;
+            padding: {int(6*s)}px {int(10*s)}px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: {int(4*s)}px;
+        """)
+
+        self.browse_btn.setMinimumHeight(int(30 * s))
+        self.browse_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(11*s)}px;
+                color: #374151;
+                background: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: {int(4*s)}px;
+                padding: {int(5*s)}px {int(12*s)}px;
+            }}
+            QPushButton:hover {{ background: #e5e7eb; }}
+        """)
+
+        self.clear_file_btn.setFixedSize(int(30 * s), int(30 * s))
+        self.clear_file_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(12*s)}px;
+                color: #6b7280;
+                background: transparent;
+                border: 1px solid #d1d5db;
+                border-radius: {int(4*s)}px;
+            }}
+            QPushButton:hover {{ background: #fee2e2; color: #dc2626; border-color: #fca5a5; }}
+        """)
+
+        # Process and Clear buttons
+        self.process_btn.setMinimumHeight(int(42 * s))
+        self.process_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(13*s)}px;
+                font-weight: 600;
+                color: white;
+                background: #2563eb;
+                border: none;
+                border-radius: {int(6*s)}px;
+                padding: {int(10*s)}px {int(20*s)}px;
+            }}
+            QPushButton:hover {{ background: #1d4ed8; }}
+            QPushButton:pressed {{ background: #1e40af; }}
+            QPushButton:disabled {{ background: #9ca3af; }}
+        """)
+
+        self.clear_btn.setMinimumHeight(int(42 * s))
+        self.clear_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(12*s)}px;
+                color: #6b7280;
+                background: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: {int(6*s)}px;
+                padding: {int(10*s)}px {int(16*s)}px;
+            }}
+            QPushButton:hover {{ background: #e5e7eb; }}
+        """)
+
+        # Update step number labels
+        self._update_step_labels_scale()
+
+        # Update all text labels
+        for widget in [self.pattern_feedback, self.line_count_label, self.file_status]:
+            if hasattr(widget, 'styleSheet'):
+                current_style = widget.styleSheet()
+                if 'font-size: 11px' in current_style:
+                    widget.setStyleSheet(current_style.replace('font-size: 11px', f'font-size: {int(11*s)}px'))
+                elif 'font-size: 10px' in current_style:
+                    widget.setStyleSheet(current_style.replace('font-size: 10px', f'font-size: {int(10*s)}px'))
+
+    def _update_step_labels_scale(self):
+        """Update step label styles with current scale."""
+        s = self._ui_scale
+        # Find and update step number badges
+        for i in range(1, 5):
+            step_widget = self.layout().itemAt(0).widget().widget().layout().itemAt(i * 4).widget()
+            if step_widget:
+                num_label = step_widget.layout().itemAt(0).widget()
+                text_label = step_widget.layout().itemAt(1).widget()
+
+                if isinstance(num_label, QLabel):
+                    num_label.setFixedSize(int(22 * s), int(22 * s))
+                    num_label.setStyleSheet(f"""
+                        font-size: {int(12*s)}px;
+                        font-weight: 600;
+                        color: white;
+                        background: #3b82f6;
+                        border-radius: {int(11*s)}px;
+                    """)
+
+                if isinstance(text_label, QLabel):
+                    text_label.setStyleSheet(f"font-size: {int(13*s)}px; font-weight: 600; color: #1f2937;")

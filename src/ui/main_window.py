@@ -5,7 +5,7 @@ Main Window - Responsive with Resizable Panels
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QStatusBar, QMessageBox, QFrame, QLabel, QApplication,
-    QSplitter, QScrollArea, QSizePolicy
+    QSplitter, QScrollArea, QSizePolicy, QComboBox
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        self._ui_scale = 1.0  # Default 100%
         self._setup_window()
         self._setup_ui()
         self._connect_signals()
@@ -101,26 +102,33 @@ class MainWindow(QMainWindow):
         
         # Header
         header = QFrame()
-        header.setFixedHeight(50)
         header.setStyleSheet("background: #1e293b;")
-        
+
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(20, 0, 20, 0)
-        
-        title = QLabel("Sahaj")
-        title.setStyleSheet("font-size: 18px; font-weight: 700; color: white;")
-        header_layout.addWidget(title)
-        
-        subtitle = QLabel("— Table 13 Generator")
-        subtitle.setStyleSheet("font-size: 12px; color: #94a3b8; margin-left: 8px;")
-        header_layout.addWidget(subtitle)
-        
+
+        self.title = QLabel("Sahaj")
+        header_layout.addWidget(self.title)
+
+        self.subtitle = QLabel("— Table 13 Generator")
+        header_layout.addWidget(self.subtitle)
+
         header_layout.addStretch()
-        
-        help_text = QLabel("Drag the divider to resize panels")
-        help_text.setStyleSheet("font-size: 11px; color: #64748b;")
-        header_layout.addWidget(help_text)
-        
+
+        # UI Scale dropdown
+        scale_label = QLabel("UI Scale:")
+        header_layout.addWidget(scale_label)
+
+        self.scale_combo = QComboBox()
+        self.scale_combo.addItems(["75%", "80%", "90%", "100%", "110%"])
+        self.scale_combo.setCurrentText("100%")
+        self.scale_combo.setCursor(Qt.PointingHandCursor)
+        header_layout.addWidget(self.scale_combo)
+
+        self.help_text = QLabel("Drag the divider to resize panels")
+        header_layout.addWidget(self.help_text)
+
+        self.header = header
         main_layout.addWidget(header)
         
         # Content with splitter
@@ -217,6 +225,10 @@ class MainWindow(QMainWindow):
     def _connect_signals(self):
         self.input_panel.process_requested.connect(self._on_process)
         self.input_panel.clear_requested.connect(self._on_clear)
+        self.scale_combo.currentTextChanged.connect(self._on_scale_changed)
+
+        # Apply initial scale
+        self._apply_header_scale()
     
     def _on_process(self):
         pattern_text = self.input_panel.get_pattern()
@@ -268,3 +280,79 @@ class MainWindow(QMainWindow):
     def _on_clear(self):
         self.output_panel.clear_results()
         self.status_bar.showMessage("Cleared")
+
+    def _on_scale_changed(self, scale_text: str):
+        """Handle UI scale change."""
+        scale_value = int(scale_text.rstrip('%'))
+        self._ui_scale = scale_value / 100.0
+
+        # Apply scale to all components
+        self._apply_header_scale()
+        self.input_panel.apply_scale(self._ui_scale)
+        self.output_panel.apply_scale(self._ui_scale)
+
+        # Update status bar
+        self._apply_statusbar_scale()
+
+    def _apply_header_scale(self):
+        """Apply scale to header elements."""
+        s = self._ui_scale
+
+        header_height = int(50 * s)
+        self.header.setFixedHeight(header_height)
+
+        title_size = int(18 * s)
+        subtitle_size = int(12 * s)
+        help_size = int(11 * s)
+        scale_label_size = int(11 * s)
+        combo_height = int(28 * s)
+
+        self.title.setStyleSheet(f"font-size: {title_size}px; font-weight: 700; color: white;")
+        self.subtitle.setStyleSheet(f"font-size: {subtitle_size}px; color: #94a3b8; margin-left: {int(8*s)}px;")
+        self.help_text.setStyleSheet(f"font-size: {help_size}px; color: #64748b;")
+
+        # Scale label before combo
+        scale_label = self.header.layout().itemAt(3).widget()
+        if isinstance(scale_label, QLabel):
+            scale_label.setStyleSheet(f"font-size: {scale_label_size}px; color: #94a3b8; margin-right: {int(6*s)}px;")
+
+        # Style the combo
+        self.scale_combo.setMinimumHeight(combo_height)
+        self.scale_combo.setStyleSheet(f"""
+            QComboBox {{
+                font-size: {int(11*s)}px;
+                padding: {int(4*s)}px {int(8*s)}px;
+                border: 1px solid #475569;
+                border-radius: {int(4*s)}px;
+                background: #334155;
+                color: white;
+                margin-right: {int(16*s)}px;
+            }}
+            QComboBox:hover {{ background: #3b4a5e; }}
+            QComboBox::drop-down {{
+                width: {int(20*s)}px;
+                border: none;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: {int(3*s)}px solid transparent;
+                border-right: {int(3*s)}px solid transparent;
+                border-top: {int(4*s)}px solid #94a3b8;
+            }}
+        """)
+
+    def _apply_statusbar_scale(self):
+        """Apply scale to status bar."""
+        s = self._ui_scale
+        font_size = int(12 * s)
+        padding = int(5 * s)
+
+        self.status_bar.setStyleSheet(f"""
+            QStatusBar {{
+                background: white;
+                border-top: 1px solid #d1d5db;
+                padding: {padding}px {int(14*s)}px;
+                font-size: {font_size}px;
+                color: #6b7280;
+            }}
+        """)

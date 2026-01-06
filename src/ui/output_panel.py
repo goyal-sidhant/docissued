@@ -24,6 +24,7 @@ class OutputPanel(QWidget):
         self._current_result: Optional[ProcessingResult] = None
         self._current_rows: List[Table13Row] = []
         self._table_expanded = False
+        self._ui_scale = 1.0  # Default 100%
         self._setup_ui()
     
     def _setup_ui(self):
@@ -611,12 +612,12 @@ class OutputPanel(QWidget):
         if not continuity_results:
             self.continuity_widget.hide()
             return
-        
+
         lines = []
         ok_count = 0
         gap_count = 0
         new_count = 0
-        
+
         for result in continuity_results:
             if result.previous_to is None:
                 new_count += 1
@@ -627,7 +628,7 @@ class OutputPanel(QWidget):
             else:
                 gap_count += 1
                 status_icon = "⚠️"
-            
+
             lines.append(f"{status_icon} {result.series_display_name}")
             lines.append(f"   Current: {result.current_from} → {result.current_to}")
             if result.previous_to:
@@ -643,15 +644,198 @@ class OutputPanel(QWidget):
                     msg = msg[3:]
                 lines.append(f"   → {msg}")
             lines.append("")
-        
+
         # Summary at top
         summary = f"Summary: {ok_count} OK"
         if gap_count > 0:
             summary += f", {gap_count} with gaps"
         if new_count > 0:
             summary += f", {new_count} new series"
-        
+
         full_text = summary + "\n" + "─" * 40 + "\n\n" + "\n".join(lines)
-        
+
         self.continuity_text.setText(full_text)
         self.continuity_widget.show()
+
+    def apply_scale(self, scale: float):
+        """Apply UI scale to all elements."""
+        self._ui_scale = scale
+        s = scale
+
+        # Results table
+        self.results_table.setStyleSheet(f"""
+            QTableWidget {{
+                font-size: {int(12*s)}px;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: {int(5*s)}px;
+                gridline-color: #e5e7eb;
+            }}
+            QTableWidget::item {{
+                padding: {int(8*s)}px {int(6*s)}px;
+            }}
+            QTableWidget::item:selected {{
+                background: #eff6ff;
+                color: #1f2937;
+            }}
+            QHeaderView::section {{
+                background: #f3f4f6;
+                color: #6b7280;
+                font-weight: 600;
+                font-size: {int(11*s)}px;
+                padding: {int(8*s)}px {int(6*s)}px;
+                border: none;
+                border-bottom: 1px solid #d1d5db;
+                border-right: 1px solid #e5e7eb;
+            }}
+            QHeaderView::section:last {{
+                border-right: none;
+            }}
+        """)
+
+        # Update column widths
+        self.results_table.setColumnWidth(1, int(130 * s))
+        self.results_table.setColumnWidth(2, int(130 * s))
+        self.results_table.setColumnWidth(3, int(55 * s))
+        self.results_table.setColumnWidth(4, int(70 * s))
+        self.results_table.setColumnWidth(5, int(45 * s))
+
+        # Table height constraints
+        if self._table_expanded:
+            # Recalculate expanded height with new scale
+            header_height = self.results_table.horizontalHeader().height()
+            rows_height = sum(self.results_table.rowHeight(i) for i in range(self.results_table.rowCount()))
+            needed_height = header_height + rows_height + int(10 * s)
+            self.results_table.setMinimumHeight(needed_height)
+        else:
+            self.results_table.setMinimumHeight(int(80 * s))
+            self.results_table.setMaximumHeight(int(200 * s))
+
+        # Expand/Collapse button
+        self.expand_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(10*s)}px;
+                color: #6b7280;
+                background: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: {int(4*s)}px;
+                padding: {int(4*s)}px {int(10*s)}px;
+            }}
+            QPushButton:hover {{ background: #e5e7eb; }}
+        """)
+
+        # Copy button
+        self.copy_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(11*s)}px;
+                color: white;
+                background: #16a34a;
+                border: none;
+                border-radius: {int(4*s)}px;
+                padding: {int(6*s)}px {int(12*s)}px;
+            }}
+            QPushButton:hover {{ background: #15803d; }}
+        """)
+
+        # Copy missing button
+        self.copy_missing_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: {int(10*s)}px;
+                color: #6b7280;
+                background: #f3f4f6;
+                border: none;
+                border-radius: {int(3*s)}px;
+                padding: {int(4*s)}px {int(8*s)}px;
+            }}
+            QPushButton:hover {{ background: #e5e7eb; }}
+        """)
+
+        # Text areas
+        self.missing_text.setMinimumHeight(int(60 * s))
+        self.missing_text.setMaximumHeight(int(150 * s))
+        self.missing_text.setStyleSheet(f"""
+            QTextEdit {{
+                font-size: {int(11*s)}px;
+                font-family: Consolas, monospace;
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: {int(5*s)}px;
+                padding: {int(8*s)}px;
+            }}
+        """)
+
+        self.unmatched_text.setMaximumHeight(int(70 * s))
+        self.unmatched_text.setStyleSheet(f"""
+            QTextEdit {{
+                font-size: {int(11*s)}px;
+                font-family: Consolas, monospace;
+                background: #f3f4f6;
+                border: 1px solid #d1d5db;
+                border-radius: {int(5*s)}px;
+                padding: {int(8*s)}px;
+            }}
+        """)
+
+        self.continuity_text.setMinimumHeight(int(80 * s))
+        self.continuity_text.setMaximumHeight(int(200 * s))
+        self.continuity_text.setStyleSheet(f"""
+            QTextEdit {{
+                font-size: {int(11*s)}px;
+                font-family: Consolas, monospace;
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: {int(5*s)}px;
+                padding: {int(8*s)}px;
+            }}
+        """)
+
+        # Warnings text
+        self.warnings_text.setStyleSheet(f"""
+            font-size: {int(11*s)}px;
+            color: #92400e;
+            background: #fef3c7;
+            padding: {int(10*s)}px;
+            border-radius: {int(5*s)}px;
+        """)
+
+        # Placeholder
+        self.placeholder.setStyleSheet(f"""
+            font-size: {int(13*s)}px;
+            color: #9ca3af;
+            padding: {int(40*s)}px {int(20*s)}px;
+            background: white;
+            border: 1px dashed #d1d5db;
+            border-radius: {int(6*s)}px;
+        """)
+
+        # Update stat boxes
+        self._update_stat_box_scale(self.stat_total, s)
+        self._update_stat_box_scale(self.stat_matched, s)
+        self._update_stat_box_scale(self.stat_cancelled, s)
+        self._update_stat_box_scale(self.stat_series, s)
+
+        # Force layout recalculation
+        self.results_table.resizeRowsToContents()
+
+    def _update_stat_box_scale(self, widget: QWidget, s: float):
+        """Update a stat box with scaled values."""
+        widget.setMinimumWidth(int(70 * s))
+        widget.setMaximumWidth(int(100 * s))
+        widget.setStyleSheet(f"""
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: {int(6*s)}px;
+        """)
+
+        layout = widget.layout()
+        layout.setContentsMargins(int(10*s), int(8*s), int(10*s), int(8*s))
+
+        # Update value label
+        value_label = widget.value_label
+        current_color = value_label.styleSheet().split('color: ')[1].split(';')[0] if 'color:' in value_label.styleSheet() else '#1f2937'
+        value_label.setStyleSheet(f"font-size: {int(18*s)}px; font-weight: 700; color: {current_color}; background: transparent; border: none;")
+
+        # Update name label
+        name_label = layout.itemAt(1).widget()
+        if isinstance(name_label, QLabel):
+            name_label.setStyleSheet(f"font-size: {int(10*s)}px; color: #9ca3af; background: transparent; border: none;")
